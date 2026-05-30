@@ -85,11 +85,14 @@ export function RegisterForm() {
   async function googleRegister() {
     try {
       if (auth && firebaseReady) {
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
         const credential = await signInWithPopup(auth, googleProvider);
         setGoogleUser(credential.user);
         setFullName(credential.user.displayName || "");
         setEmail(credential.user.email || "");
         setIsGoogleFlow(true);
+      } else {
+        setError("Google signup not configured. Please use email registration.");
       }
     } catch (err) {
       setError("Google signup failed. Please try again.");

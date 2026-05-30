@@ -74,6 +74,7 @@ export function LoginForm() {
     try {
       let sessionUser: ReturnType<typeof buildSessionUser>;
       if (auth && firebaseReady) {
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
         const credential = await signInWithPopup(auth, googleProvider);
         sessionUser = buildSessionUser(credential.user.email ?? "student@gmail.com", {
           uid: credential.user.uid,
@@ -82,11 +83,9 @@ export function LoginForm() {
           avatarUrl: credential.user.photoURL ?? undefined
         });
       } else {
-        sessionUser = buildSessionUser("student@gmail.com", {
-          uid: crypto.randomUUID(),
-          fullName: "Google Student",
-          email: "student@gmail.com"
-        });
+        setIsLoading(false);
+        setMessage("Google login not configured. Please use email login.");
+        return;
       }
       setUser(sessionUser);
       router.push(routeFor(sessionUser));
