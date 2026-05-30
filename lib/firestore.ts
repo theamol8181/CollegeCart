@@ -111,25 +111,40 @@ export async function createProduct(product: Product) {
   }
   
   try {
+    // Validate product name - this is CRITICAL
+    const productName = String(product.name || "").trim();
+    if (!productName) {
+      console.error("❌ ERROR: Product name is empty!", product);
+      throw new Error("Product name cannot be empty. Please provide a product name.");
+    }
+    
     const ref = product.id ? doc(db, "products", product.id) : doc(collection(db, "products"));
     
     const productData = withoutUndefined({
       ...product,
       id: ref.id,
+      name: productName,
       createdAt: product.createdAt ?? new Date().toISOString(),
+      updatedAt: product.updatedAt ?? new Date().toISOString(),
       savedCount: 0,
       views: 0,
       status: product.status ?? "pending"
     } as unknown as Record<string, unknown>);
 
-    console.log("Saving product to Firestore:", ref.id, productData);
+    console.log("✅ SAVING PRODUCT TO FIREBASE:", {
+      id: ref.id,
+      name: productData.name,
+      sellerId: productData.sellerId,
+      sellerName: productData.sellerName,
+      status: productData.status
+    });
     
     await setDoc(ref, productData, { merge: true });
     
-    console.log("Product saved successfully:", ref.id);
+    console.log("✅ Product saved successfully:", ref.id, "Name:", productData.name);
     return ref.id;
   } catch (error) {
-    console.error("Product save error:", error);
+    console.error("❌ Product save error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     
     if (errorMessage.includes("permission-denied")) {

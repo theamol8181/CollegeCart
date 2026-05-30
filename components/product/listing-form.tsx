@@ -86,6 +86,14 @@ export function ListingForm() {
       setOverallProgress(0);
       const formData = new FormData(event.currentTarget);
       
+      // VALIDATE PRODUCT NAME FIRST
+      const rawName = String(formData.get("name") || "").trim();
+      if (!rawName) {
+        setFormMessage("❌ Product name cannot be empty! Please enter a product name.", "error");
+        setLoading(false);
+        return;
+      }
+      
       if (!files.length) {
         setImageStatus("error");
         setFormMessage("Please upload at least one real product image.", "error");
@@ -122,7 +130,7 @@ export function ListingForm() {
       const now = new Date().toISOString();
       const product = {
         id: `local-${crypto.randomUUID()}`,
-        name: String(formData.get("name")).trim(),
+        name: rawName,
         description: String(formData.get("description")).trim(),
         category: String(formData.get("category")) as ProductCategory,
         price: Number(formData.get("price")),
