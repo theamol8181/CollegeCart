@@ -38,11 +38,19 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   condition: "All",
   maxPrice: 60000,
   savedIds: [],
-  setProducts: (products) => {
-    const realListings = keepRealListings(products);
-    if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(realListings));
-    set({ products: realListings });
-  },
+  setProducts: (products) =>
+    set((state) => {
+      const realListings = keepRealListings(products);
+      const remoteIds = new Set(realListings.map((product) => product.id));
+      const localListings = state.products.filter(
+        (product) => product.id.startsWith("local-") && !remoteIds.has(product.id)
+      );
+      const mergedListings = [...localListings, ...realListings];
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
+      }
+      return { products: mergedListings };
+    }),
   hydrateProducts: () => {
     if (typeof window === "undefined") return;
     const stored = window.localStorage.getItem(PRODUCTS_STORAGE_KEY);

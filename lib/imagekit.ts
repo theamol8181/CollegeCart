@@ -18,7 +18,7 @@ export async function uploadToImageKit(file: File, folder = "/collegecart/listin
   try {
     auth = await getImageKitAuth();
   } catch {
-    return fileToDataUrl(file);
+    return fileToCompressedDataUrl(file);
   }
   const formData = new FormData();
   formData.append("file", file);
@@ -34,10 +34,44 @@ export async function uploadToImageKit(file: File, folder = "/collegecart/listin
     body: formData
   });
 
-  if (!response.ok) return fileToDataUrl(file);
+  if (!response.ok) return fileToCompressedDataUrl(file);
 
   const data = (await response.json()) as { url: string };
   return data.url;
+}
+
+async function fileToCompressedDataUrl(file: File) {
+  if (typeof document === "undefined" || !file.type.startsWith("image/") || file.type.includes("svg")) {
+    return fileToDataUrl(file);
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 900;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) return fileToDataUrl(file);
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    let quality = 0.78;
+    let dataUrl = canvas.toDataURL("image/jpeg", quality);
+    while (dataUrl.length > 180_000 && quality > 0.42) {
+      quality -= 0.08;
+      dataUrl = canvas.toDataURL("image/jpeg", quality);
+    }
+
+    return dataUrl;
+  } catch {
+    return fileToDataUrl(file);
+  }
 }
 
 function fileToDataUrl(file: File) {
