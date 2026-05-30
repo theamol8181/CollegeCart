@@ -197,18 +197,26 @@ export function ListingForm() {
 
   return (
     <form onSubmit={submit} className="glass rounded-[2rem] p-5 sm:p-8">
+      <div className="mb-6 rounded-2xl border border-ocean/30 bg-ocean/5 p-4">
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">📝 First, name your product clearly so buyers find it</p>
+      </div>
+      
       <div className="grid gap-5 md:grid-cols-2">
-        <Field name="name" label="Product Name" placeholder="MacBook charger, semester books..." />
+        <label className="block md:col-span-2">
+          <span className="text-sm font-black text-slate-700 dark:text-slate-200">🛍️ Product Name <span className="text-coral">*</span></span>
+          <input suppressHydrationWarning name="name" required type="text" placeholder="e.g., MacBook charger, Semester books, Physics notes, Study lamp..." className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink placeholder:text-slate-400 dark:border-white/10 dark:bg-white/10 dark:text-white" />
+        </label>
+        
         <Field name="price" type="number" label="Price" placeholder="2500" />
         <label className="block">
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">Category</span>
-          <select suppressHydrationWarning name="category" className="mt-2 w-full rounded-2xl border-slate-200 bg-white text-ink dark:border-white/10 dark:bg-white/10 dark:text-white">
+          <select suppressHydrationWarning name="category" className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink dark:border-white/10 dark:bg-white/10 dark:text-white">
             {categories.map((category) => <option key={category.name}>{category.name}</option>)}
           </select>
         </label>
         <label className="block">
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">Condition</span>
-          <select suppressHydrationWarning name="condition" className="mt-2 w-full rounded-2xl border-slate-200 bg-white text-ink dark:border-white/10 dark:bg-white/10 dark:text-white">
+          <select suppressHydrationWarning name="condition" className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink dark:border-white/10 dark:bg-white/10 dark:text-white">
             {conditions.map((condition) => <option key={condition}>{condition}</option>)}
           </select>
         </label>
@@ -217,7 +225,7 @@ export function ListingForm() {
         <Field name="whatsappNumber" label="WhatsApp Number" placeholder="+919876543210" />
         <label className="block md:col-span-2">
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">Description</span>
-          <textarea suppressHydrationWarning name="description" required rows={5} placeholder="Mention condition, accessories, pickup timing, and reason for selling." className="mt-2 w-full rounded-2xl border-slate-200 bg-white text-ink placeholder:text-slate-400 dark:border-white/10 dark:bg-white/10 dark:text-white" />
+          <textarea suppressHydrationWarning name="description" required rows={5} placeholder="Mention condition, accessories, pickup timing, and reason for selling." className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink placeholder:text-slate-400 dark:border-white/10 dark:bg-white/10 dark:text-white" />
         </label>
       </div>
 
