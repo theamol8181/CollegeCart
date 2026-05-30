@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup, sendPasswordResetEmail } from "firebase/auth";
+import { sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { Chrome, Eye, Lock, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { getGoogleAuthMessage, shouldRetryGoogleWithRedirect } from "@/lib/auth-errors";
 import { auth, firebaseReady, googleProvider } from "@/lib/firebase";
 import { demoUser } from "@/lib/data";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
@@ -89,8 +90,18 @@ export function LoginForm() {
       setUser(sessionUser);
       router.push(routeFor(sessionUser));
     } catch (error) {
+      if (auth && shouldRetryGoogleWithRedirect(error)) {
+        try {
+          setMessage("Popup block ho raha hai. Google redirect login open kar rahe hain...");
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectError) {
+          setMessage(getGoogleAuthMessage(redirectError));
+        }
+      } else {
+        setMessage(getGoogleAuthMessage(error));
+      }
       setIsLoading(false);
-      setMessage("Google login failed. Please try again.");
     }
   }
 

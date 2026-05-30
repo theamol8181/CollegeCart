@@ -1,9 +1,10 @@
 "use client";
 
-import { createUserWithEmailAndPassword, signInWithPopup, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, updateProfile } from "firebase/auth";
 import { Camera, Chrome, GraduationCap, Lock, Mail, Phone, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { getGoogleAuthMessage, shouldRetryGoogleWithRedirect } from "@/lib/auth-errors";
 import { auth, firebaseReady, googleProvider } from "@/lib/firebase";
 import { demoUser } from "@/lib/data";
 import { bangaloreColleges, years } from "@/lib/bangalore-colleges";
@@ -94,7 +95,17 @@ export function RegisterForm() {
         setError("Google signup not configured. Please use email registration.");
       }
     } catch (err) {
-      setError("Google signup failed. Please try again.");
+      if (auth && shouldRetryGoogleWithRedirect(err)) {
+        try {
+          setError("Popup block ho raha hai. Google redirect signup open kar rahe hain...");
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectError) {
+          setError(getGoogleAuthMessage(redirectError));
+        }
+      } else {
+        setError(getGoogleAuthMessage(err));
+      }
     }
   }
 

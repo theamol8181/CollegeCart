@@ -23,6 +23,8 @@ export const firebaseApp: FirebaseApp | null =
 export const auth = firebaseApp ? getAuth(firebaseApp) : null;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 
+auth?.useDeviceLanguage();
+
 const analyticsApp = firebaseApp;
 export const analytics: Promise<Analytics | null> =
   analyticsApp && typeof window !== "undefined"
