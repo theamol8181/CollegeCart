@@ -75,17 +75,45 @@ export async function signOutUser() {
 }
 
 export async function createProduct(product: Product) {
-  if (!db) return null;
-  const ref = product.id ? doc(db, "products", product.id) : doc(collection(db, "products"));
-  await setDoc(ref, withoutUndefined({
-    ...product,
-    id: ref.id,
-    createdAt: product.createdAt ?? new Date().toISOString(),
-    savedCount: 0,
-    views: 0,
-    status: product.status ?? "pending"
-  } as unknown as Record<string, unknown>), { merge: true });
-  return ref.id;
+  if (!db) {
+    console.error("Firebase not initialized");
+    throw new Error("Firebase database not configured");
+  }
+  
+  try {
+    const ref = product.id ? doc(db, "products", product.id) : doc(collection(db, "products"));
+    
+    const productData = withoutUndefined({
+      ...product,
+      id: ref.id,
+      createdAt: product.createdAt ?? new Date().toISOString(),
+      savedCount: 0,
+      views: 0,
+      status: product.status ?? "pending"
+    } as unknown as Record<string, unknown>);
+
+    console.log("Saving product to Firestore:", ref.id, productData);
+    
+    await setDoc(ref, productData, { merge: true });
+    
+    console.log("Product saved successfully:", ref.id);
+    return ref.id;
+  } catch (error) {
+    console.error("Product save error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    if (errorMessage.includes("permission-denied")) {
+      throw new Error("Permission denied. Check Firebase Firestore rules and authentication.");
+    }
+    if (errorMessage.includes("unauthenticated")) {
+      throw new Error("Not authenticated. Please log in first.");
+    }
+    if (errorMessage.includes("PERMISSION_DENIED")) {
+      throw new Error("Firebase Firestore rules blocking write access.");
+    }
+    
+    throw error;
+  }
 }
 
 export async function deleteProduct(productId: string) {
