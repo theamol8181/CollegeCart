@@ -5,21 +5,36 @@ export type ImageKitAuth = {
   publicKey: string;
 };
 
+export type UploadProgressCallback = (progress: number) => void;
+
 export async function getImageKitAuth(): Promise<ImageKitAuth> {
   const response = await fetch("/api/imagekit-auth");
   if (!response.ok) {
-    throw new Error("Image upload authorization failed.");
+    const errorText = await response.text();
+    console.error("ImageKit auth error:", errorText);
+    throw new Error("Image upload authorization failed: " + response.statusText);
   }
   return response.json();
 }
 
-export async function uploadToImageKit(file: File, folder = "/collegecart/listings") {
+export async function uploadToImageKit(
+  file: File,
+  folder = "/collegecart/listings",
+  onProgress?: UploadProgressCallback
+): Promise<string> {
   let auth: ImageKitAuth;
+  
   try {
+    console.log("Getting ImageKit auth...");
     auth = await getImageKitAuth();
-  } catch {
-    return fileToCompressedDataUrl(file);
+    console.log("Auth received, uploading file:", file.name);
+  } catch (error) {
+    console.error("Auth failed, using local fallback:", error);
+    const dataUrl = await fileToCompressedDataUrl(file);
+    onProgress?.(100);
+    return dataUrl;
   }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("fileName", `${Date.now()}-${file.name}`);
@@ -29,15 +44,31 @@ export async function uploadToImageKit(file: File, folder = "/collegecart/listin
   formData.append("expire", String(auth.expire));
   formData.append("token", auth.token);
 
-  const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-    method: "POST",
-    body: formData
-  });
+  try {
+    const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData
+    });
 
-  if (!response.ok) return fileToCompressedDataUrl(file);
+    // Simulate progress during upload
+    onProgress?.(80);
 
-  const data = (await response.json()) as { url: string };
-  return data.url;
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("ImageKit upload error:", response.status, errorData);
+      throw new Error(`ImageKit upload failed: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { url: string };
+    console.log("Upload successful:", data.url);
+    onProgress?.(100);
+    return data.url;
+  } catch (error) {
+    console.error("Upload failed, using fallback:", error);
+    const dataUrl = await fileToCompressedDataUrl(file);
+    onProgress?.(100);
+    return dataUrl;
+  }
 }
 
 async function fileToCompressedDataUrl(file: File) {

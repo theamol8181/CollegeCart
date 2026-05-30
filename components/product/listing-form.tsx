@@ -26,6 +26,8 @@ export function ListingForm() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<MessageType>("info");
   const [imageStatus, setImageStatus] = useState<ImageStatus>("idle");
+  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
+  const [overallProgress, setOverallProgress] = useState(0);
 
   useEffect(() => {
     const nextPreviews = files.map((file) => ({
@@ -77,7 +79,10 @@ export function ListingForm() {
     try {
       setLoading(true);
       setFormMessage("");
+      setUploadProgress({});
+      setOverallProgress(0);
       const formData = new FormData(event.currentTarget);
+      
       if (!files.length) {
         setImageStatus("error");
         setFormMessage("Please upload at least one real product image.", "error");
@@ -85,8 +90,31 @@ export function ListingForm() {
       }
 
       setImageStatus("uploading");
-      const imageUrls = await Promise.all(files.map((file) => uploadToImageKit(file)));
+      setFormMessage(`Uploading ${files.length} image${files.length > 1 ? "s" : ""}...`, "info");
+
+      const imageUrls = await Promise.all(
+        files.map(async (file, index) => {
+          try {
+            return await uploadToImageKit(file, "/collegecart/listings", (progress) => {
+              setUploadProgress((prev) => ({
+                ...prev,
+                [index]: progress
+              }));
+              // Calculate overall progress
+              const progresses = Object.values({ ...uploadProgress, [index]: progress });
+              const avg = progresses.reduce((a, b) => a + b, 0) / progresses.length;
+              setOverallProgress(Math.round(avg));
+            });
+          } catch (error) {
+            console.error(`Failed to upload image ${index + 1}:`, error);
+            throw error;
+          }
+        })
+      );
+
       setImageStatus("uploaded");
+      setOverallProgress(100);
+      setFormMessage("All images uploaded successfully!", "success");
 
       const product = {
         id: `local-${crypto.randomUUID()}`,
@@ -113,26 +141,27 @@ export function ListingForm() {
         const savedId = await createProduct(product);
         addProduct(savedId ? { ...product, id: savedId } : product);
         if (savedId) {
-          setFormMessage("Listing submitted successfully. It will appear after admin approval.", "success");
-          setTimeout(() => router.push("/profile"), 900);
+          setFormMessage("✅ Listing published! It will appear after admin approval.", "success");
+          setTimeout(() => router.push("/profile"), 1500);
         } else {
           setFormMessage(
-            "Listing saved on this device, but Firebase is not connected. Please check Firebase settings.",
+            "Listing saved on device, but cloud sync failed. Please check Firebase.",
             "error"
           );
         }
       } catch (error) {
-        console.error("Listing cloud save failed", error);
+        console.error("Listing save failed:", error);
         addProduct(product);
         setFormMessage(
-          "Listing saved on this device, but cloud sync failed. Please check Firebase permissions and try again.",
+          "Images uploaded but cloud save failed. Try again or contact support.",
           "error"
         );
       }
     } catch (error) {
-      console.error("Listing save failed", error);
+      console.error("Upload error:", error);
       setImageStatus("error");
-      setFormMessage("Listing could not be saved. Please try again.", "error");
+      const errorMsg = error instanceof Error ? error.message : "Image upload failed";
+      setFormMessage(`❌ ${errorMsg}. Please check browser console and try again.`, "error");
     } finally {
       setLoading(false);
     }
@@ -181,22 +210,34 @@ export function ListingForm() {
               {imageStatusLabel(imageStatus)}
             </span>
             <span className="text-xs font-bold text-slate-500 dark:text-slate-300">
-              {previews.length}/{maxImages} selected
+              {imageStatus === "uploading" ? `${overallProgress}%` : `${previews.length}/${maxImages} selected`}
             </span>
           </div>
+          
+          {/* Overall Progress Bar */}
           <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-            <div className={`h-full rounded-full transition-all ${imageStatus === "error" ? "bg-coral" : "bg-mint"}`} style={{ width: `${imageStatusProgress(imageStatus)}%` }} />
+            <div 
+              className={`h-full rounded-full transition-all ${imageStatus === "error" ? "bg-coral" : imageStatus === "uploaded" ? "bg-mint" : "bg-ocean"}`} 
+              style={{ width: `${imageStatus === "uploading" ? overallProgress : imageStatusProgress(imageStatus)}%` }} 
+            />
           </div>
+
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {previews.map((preview, index) => (
               <div key={preview.url} className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/10">
                 <div className="relative aspect-[4/3]">
                   <img src={preview.url} alt={preview.name} className="size-full object-cover" />
+                  {imageStatus === "uploading" && uploadProgress[index] !== undefined && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                      <span className="text-sm font-black text-white">{uploadProgress[index]}%</span>
+                    </div>
+                  )}
                   <button
                     type="button"
+                    disabled={imageStatus === "uploading"}
                     aria-label={`Remove ${preview.name}`}
                     onClick={() => removeFile(index)}
-                    className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-ink/80 text-white opacity-100 transition hover:bg-coral sm:opacity-0 sm:group-hover:opacity-100"
+                    className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-ink/80 text-white opacity-100 transition hover:bg-coral disabled:opacity-50 disabled:cursor-not-allowed sm:opacity-0 sm:group-hover:opacity-100"
                   >
                     <X className="size-4" />
                   </button>
@@ -204,6 +245,14 @@ export function ListingForm() {
                 <div className="p-3">
                   <p className="truncate text-xs font-black text-ink dark:text-white">{preview.name}</p>
                   <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-300">{formatFileSize(preview.size)}</p>
+                  {imageStatus === "uploading" && (
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                      <div 
+                        className="h-full rounded-full bg-ocean transition-all"
+                        style={{ width: `${uploadProgress[index] ?? 0}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
