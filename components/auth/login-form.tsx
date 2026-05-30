@@ -76,28 +76,28 @@ export function LoginForm() {
       let sessionUser: ReturnType<typeof buildSessionUser>;
       if (auth && firebaseReady) {
         const credential = await signInWithPopup(auth, googleProvider);
+        const userEmail = credential.user.email || "student@gmail.com";
         
-        // Check if user already exists in database
-        const existingUser = users.find((item) => item.email.toLowerCase() === (credential.user.email || "").toLowerCase());
+        // Check if user already exists in local store
+        const existingUser = users.find((item) => item.email.toLowerCase() === userEmail.toLowerCase());
         
         if (!existingUser) {
-          // New user - redirect to registration with Google context
-          sessionStorage.setItem("google_user_registration", JSON.stringify({
+          // New user - redirect to registration with ONLY Google credentials (no pre-fill)
+          sessionStorage.setItem("google_user_auth", JSON.stringify({
             uid: credential.user.uid,
-            displayName: credential.user.displayName || "Google Student",
-            email: credential.user.email || "student@gmail.com",
-            photoURL: credential.user.photoURL || undefined
+            email: userEmail
           }));
           setIsLoading(false);
           router.push("/register");
           return;
         }
         
-        sessionUser = buildSessionUser(credential.user.email ?? "student@gmail.com", {
+        // Existing user - log them in normally
+        sessionUser = buildSessionUser(userEmail, {
           uid: credential.user.uid,
-          fullName: credential.user.displayName ?? "Google Student",
-          email: credential.user.email ?? "student@gmail.com",
-          avatarUrl: credential.user.photoURL ?? undefined
+          fullName: existingUser.fullName,
+          email: userEmail,
+          avatarUrl: existingUser.avatarUrl ?? undefined
         });
       } else {
         setIsLoading(false);

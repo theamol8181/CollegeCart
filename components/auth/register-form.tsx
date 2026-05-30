@@ -28,14 +28,14 @@ export function RegisterForm() {
 
   // Check for Google user from login redirect
   React.useEffect(() => {
-    const storedGoogleUser = sessionStorage.getItem("google_user_registration");
+    const storedGoogleUser = sessionStorage.getItem("google_user_auth");
     if (storedGoogleUser) {
       const parsed = JSON.parse(storedGoogleUser);
       setGoogleUser(parsed);
-      setFullName(parsed.displayName || "");
+      // Only set email, leave other fields empty for user to fill
       setEmail(parsed.email || "");
       setIsGoogleFlow(true);
-      sessionStorage.removeItem("google_user_registration");
+      sessionStorage.removeItem("google_user_auth");
     }
   }, []);
 
@@ -47,12 +47,12 @@ export function RegisterForm() {
     if (isGoogleFlow && googleUser) {
       const profile = {
         uid: googleUser.uid,
-        fullName: googleUser.displayName || fullName,
+        fullName,
         collegeName,
         email: googleUser.email,
         phoneNumber,
         year,
-        avatarUrl: googleUser.photoURL || avatarUrl || demoUser.avatarUrl,
+        avatarUrl: avatarUrl || demoUser.avatarUrl,
         role: "student" as const,
         verificationStatus: "needs_id" as const,
         online: true,
@@ -126,10 +126,11 @@ export function RegisterForm() {
     return (
       <form onSubmit={register} className="space-y-4">
         <div className="rounded-2xl border border-white/[0.12] bg-white/10 px-4 py-3.5 text-white">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">Google Account</p>
-          <p className="mt-2 text-sm font-semibold">{googleUser.displayName}</p>
-          <p className="text-xs text-white/60">{googleUser.email}</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">Google Account Email</p>
+          <p className="mt-2 text-sm font-semibold">{googleUser.email}</p>
         </div>
+        
+        <Field icon={<UserRound className="size-5" />} label="Full name" value={fullName} onChange={setFullName} />
         
         <label className="block">
           <span className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">College</span>
