@@ -178,22 +178,7 @@ export const products: Product[] = [
 
 export const messages: MessageThread[] = [];
 
-export const notifications: NotificationItem[] = [
-  {
-    id: "n1",
-    title: "New message",
-    body: "Nisha replied about iPad Air M1.",
-    createdAt: "2026-05-28T13:20:00.000Z",
-    unread: true
-  },
-  {
-    id: "n2",
-    title: "Wishlist update",
-    body: "Firefox Gear Cycle dropped below your saved budget.",
-    createdAt: "2026-05-27T17:10:00.000Z",
-    unread: false
-  }
-];
+export const notifications: NotificationItem[] = [];
 
 export const heroSlides = [
   {

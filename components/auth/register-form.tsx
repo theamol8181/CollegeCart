@@ -3,7 +3,7 @@
 import { createUserWithEmailAndPassword, signInWithPopup, signInWithRedirect, updateProfile } from "firebase/auth";
 import { Camera, Chrome, GraduationCap, Lock, Mail, Phone, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import React, { FormEvent, useState } from "react";
 import { getGoogleAuthMessage, shouldRetryGoogleWithRedirect } from "@/lib/auth-errors";
 import { auth, firebaseReady, googleProvider } from "@/lib/firebase";
 import { demoUser } from "@/lib/data";
@@ -25,6 +25,19 @@ export function RegisterForm() {
   const [isGoogleFlow, setIsGoogleFlow] = useState(false);
   const [googleUser, setGoogleUser] = useState<any>(null);
   const setUser = useAuthStore((state) => state.setUser);
+
+  // Check for Google user from login redirect
+  React.useEffect(() => {
+    const storedGoogleUser = sessionStorage.getItem("google_user_registration");
+    if (storedGoogleUser) {
+      const parsed = JSON.parse(storedGoogleUser);
+      setGoogleUser(parsed);
+      setFullName(parsed.displayName || "");
+      setEmail(parsed.email || "");
+      setIsGoogleFlow(true);
+      sessionStorage.removeItem("google_user_registration");
+    }
+  }, []);
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

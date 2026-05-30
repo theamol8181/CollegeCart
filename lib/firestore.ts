@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   limit,
   onSnapshot,
   orderBy,
@@ -71,6 +72,21 @@ export function listenToProducts(onChange: (products: Product[]) => void) {
   } catch (error) {
     console.error("Error setting up products listener:", error);
     return () => undefined;
+  }
+}
+
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  if (!db) return null;
+  try {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { ...docSnap.data(), uid } as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    return null;
   }
 }
 

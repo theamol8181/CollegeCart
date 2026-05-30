@@ -76,6 +76,23 @@ export function LoginForm() {
       let sessionUser: ReturnType<typeof buildSessionUser>;
       if (auth && firebaseReady) {
         const credential = await signInWithPopup(auth, googleProvider);
+        
+        // Check if user already exists in database
+        const existingUser = users.find((item) => item.email.toLowerCase() === (credential.user.email || "").toLowerCase());
+        
+        if (!existingUser) {
+          // New user - redirect to registration with Google context
+          sessionStorage.setItem("google_user_registration", JSON.stringify({
+            uid: credential.user.uid,
+            displayName: credential.user.displayName || "Google Student",
+            email: credential.user.email || "student@gmail.com",
+            photoURL: credential.user.photoURL || undefined
+          }));
+          setIsLoading(false);
+          router.push("/register");
+          return;
+        }
+        
         sessionUser = buildSessionUser(credential.user.email ?? "student@gmail.com", {
           uid: credential.user.uid,
           fullName: credential.user.displayName ?? "Google Student",
