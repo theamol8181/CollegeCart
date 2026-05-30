@@ -1,0 +1,48 @@
+# Folder Structure
+
+```txt
+app/
+  api/imagekit-auth/route.ts
+  admin/page.tsx
+  login/page.tsx
+  messages/page.tsx
+  notifications/page.tsx
+  product/[id]/page.tsx
+  profile/page.tsx
+  register/page.tsx
+  search/page.tsx
+  sell/page.tsx
+  wishlist/page.tsx
+components/
+  admin/
+  auth/
+  chat/
+  home/
+  layout/
+  notifications/
+  product/
+  providers/
+  profile/
+  shared/
+lib/
+  data.ts
+  firebase.ts
+  firestore.ts
+  imagekit.ts
+  messaging.ts
+  notifications.ts
+  seo.ts
+  types.ts
+  utils.ts
+stores/
+  auth-store.ts
+  marketplace-store.ts
+  theme-store.ts
+public/
+  icons/
+  manifest.json
+docs/
+  deployment-guide.md
+  firestore-schema.md
+  folder-structure.md
+```
