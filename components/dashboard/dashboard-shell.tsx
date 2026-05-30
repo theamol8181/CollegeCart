@@ -12,11 +12,8 @@ import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function DashboardShell() {
   const user = useAuthStore((state) => state.user) ?? demoUser;
-  const users = useAuthStore((state) => state.users);
   const { products, savedIds } = useMarketplaceStore();
-  const verifiedUsers = users.filter((item) => item.verificationStatus === "approved");
-  const verifiedUserIds = new Set(verifiedUsers.map((item) => item.uid));
-  const approved = products.filter((product) => product.status === "approved" && verifiedUserIds.has(product.sellerId));
+  const approved = products.filter((product) => product.status === "approved");
   const recentListings = approved.slice(0, 4);
   const myProducts = products.filter((product) => product.sellerId === user.uid || product.sellerName === user.fullName);
   const savedItems = approved.filter((product) => savedIds.includes(product.id));

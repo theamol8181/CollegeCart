@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Ban, CheckCircle2, Clock3, Flag, IdCard, Shield, Trash2, UsersRound, XCircle } from "lucide-react";
 import { demoUser } from "@/lib/data";
+import { deleteProduct, updateProductStatus } from "@/lib/firestore";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -21,6 +22,21 @@ export function AdminDashboard() {
     { label: "Pending Review", value: String(pending.length + pendingUsers.length), icon: Clock3, color: "bg-sun/20 text-amber-700" },
     { label: "Reported Listings", value: String(rejected.length), icon: Flag, color: "bg-coral/10 text-coral" }
   ];
+
+  async function approveListing(productId: string) {
+    approveProduct(productId);
+    await updateProductStatus(productId, "approved");
+  }
+
+  async function rejectListing(productId: string) {
+    rejectProduct(productId);
+    await updateProductStatus(productId, "rejected");
+  }
+
+  async function removeListing(productId: string) {
+    deleteProductLocal(productId);
+    await deleteProduct(productId);
+  }
 
   return (
     <div className="space-y-8">
@@ -123,16 +139,16 @@ export function AdminDashboard() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <>
-                    <button onClick={() => approveProduct(product.id)} className="inline-flex items-center gap-2 rounded-full bg-mint/12 px-4 py-2 text-sm font-black text-emerald-700 dark:text-mint">
+                    <button onClick={() => void approveListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-mint/12 px-4 py-2 text-sm font-black text-emerald-700 dark:text-mint">
                       <CheckCircle2 className="size-4" />
                       Approve
                     </button>
-                    <button onClick={() => rejectProduct(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
+                    <button onClick={() => void rejectListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
                       <XCircle className="size-4" />
                       Reject
                     </button>
                   </>
-                  <button onClick={() => deleteProductLocal(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
+                  <button onClick={() => void removeListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
                     <Trash2 className="size-4" />
                     Delete
                   </button>

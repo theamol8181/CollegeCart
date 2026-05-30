@@ -8,7 +8,9 @@ import type { Product } from "@/lib/types";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function ProductPageClient({ id, fallbackProduct }: { id: string; fallbackProduct?: Product }) {
-  const product = useMarketplaceStore((state) => state.products.find((item) => item.id === id)) ?? fallbackProduct;
+  const product =
+    useMarketplaceStore((state) => state.products.find((item) => item.id === id && item.status === "approved")) ??
+    (fallbackProduct?.status === "approved" ? fallbackProduct : undefined);
 
   if (!product) {
     return (

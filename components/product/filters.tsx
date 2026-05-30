@@ -12,7 +12,7 @@ export function ProductFilters() {
   const { category, condition, maxPrice, setCategory, setCondition, setMaxPrice } = useMarketplaceStore();
 
   return (
-    <aside className="glass sticky top-24 h-fit rounded-[1.75rem] p-5">
+    <aside className="glass h-fit rounded-[1.75rem] p-5">
       <div className="mb-5 flex items-center gap-2">
         <SlidersHorizontal className="size-5 text-ocean" />
         <h2 className="text-lg font-black text-ink dark:text-white">Filters</h2>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -17,20 +16,53 @@ import {
 import { auth, db } from "@/lib/firebase";
 import type { Product, UserProfile } from "@/lib/types";
 
+function withoutUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
+}
+
+function toIsoDate(value: unknown) {
+  if (typeof value === "string") return value;
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof (value as { toDate: () => Date }).toDate === "function"
+  ) {
+    return (value as { toDate: () => Date }).toDate().toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function toProduct(id: string, data: Record<string, unknown>): Product {
+  return {
+    ...data,
+    id,
+    createdAt: toIsoDate(data.createdAt),
+    images: Array.isArray(data.images) ? data.images : [],
+    savedCount: typeof data.savedCount === "number" ? data.savedCount : 0,
+    views: typeof data.views === "number" ? data.views : 0,
+    status: (data.status as Product["status"]) ?? "pending"
+  } as Product;
+}
+
 export function listenToProducts(onChange: (products: Product[]) => void) {
   if (!db) return () => undefined;
 
-  const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(40));
-  return onSnapshot(productsQuery, (snapshot) => {
-    onChange(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Product));
-  });
+  const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(80));
+  return onSnapshot(
+    productsQuery,
+    (snapshot) => {
+      onChange(snapshot.docs.map((item) => toProduct(item.id, item.data())));
+    },
+    (error) => {
+      console.error("Product sync failed", error);
+    }
+  );
 }
 
 export async function saveUserProfile(profile: UserProfile) {
   if (!db) return;
-  const cleanedProfile = Object.fromEntries(
-    Object.entries(profile).filter(([_, value]) => value !== undefined)
-  );
+  const cleanedProfile = withoutUndefined(profile as unknown as Record<string, unknown>);
   await setDoc(doc(db, "users", profile.uid), {
     ...cleanedProfile,
     updatedAt: serverTimestamp()
@@ -42,21 +74,31 @@ export async function signOutUser() {
   await auth.signOut();
 }
 
-export async function createProduct(product: Omit<Product, "id">) {
+export async function createProduct(product: Product) {
   if (!db) return null;
-  const ref = await addDoc(collection(db, "products"), {
+  const ref = product.id ? doc(db, "products", product.id) : doc(collection(db, "products"));
+  await setDoc(ref, withoutUndefined({
     ...product,
-    createdAt: serverTimestamp(),
+    id: ref.id,
+    createdAt: product.createdAt ?? new Date().toISOString(),
     savedCount: 0,
     views: 0,
     status: product.status ?? "pending"
-  });
+  } as unknown as Record<string, unknown>), { merge: true });
   return ref.id;
 }
 
 export async function deleteProduct(productId: string) {
   if (!db) return;
   await deleteDoc(doc(db, "products", productId));
+}
+
+export async function updateProductStatus(productId: string, status: NonNullable<Product["status"]>) {
+  if (!db) return;
+  await updateDoc(doc(db, "products", productId), {
+    status,
+    updatedAt: serverTimestamp()
+  });
 }
 
 export async function saveWishlist(userId: string, productId: string) {
@@ -85,6 +127,6 @@ export function listenToUserProducts(userId: string, onChange: (products: Produc
   if (!db) return () => undefined;
   const userProductsQuery = query(collection(db, "products"), where("sellerId", "==", userId));
   return onSnapshot(userProductsQuery, (snapshot) => {
-    onChange(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Product));
+    onChange(snapshot.docs.map((item) => toProduct(item.id, item.data())));
   });
 }

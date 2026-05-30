@@ -2,15 +2,12 @@
 
 import { ProductCard } from "@/components/product/product-card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export default function WishlistPage() {
   const { products, savedIds } = useMarketplaceStore();
-  const users = useAuthStore((state) => state.users);
-  const verifiedUserIds = new Set(users.filter((user) => user.verificationStatus === "approved").map((user) => user.uid));
   const savedProducts = products.filter(
-    (product) => product.status === "approved" && verifiedUserIds.has(product.sellerId) && savedIds.includes(product.id)
+    (product) => product.status === "approved" && savedIds.includes(product.id)
   );
 
   if (!savedProducts.length) {

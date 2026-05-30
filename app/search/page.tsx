@@ -8,14 +8,16 @@ export const metadata: Metadata = {
 
 export default function SearchPage() {
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <ProductFilters />
+    <div className="space-y-6">
       <section>
-        <div className="mb-5">
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-ocean">Search and filters</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-ink dark:text-white">Find exactly what you need</h1>
+        <p className="text-sm font-black uppercase tracking-[0.18em] text-ocean">Search and filters</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-ink dark:text-white">Find exactly what you need</h1>
+      </section>
+      <section className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+        <ProductFilters />
+        <div className="min-w-0">
+          <ProductGrid />
         </div>
-        <ProductGrid />
       </section>
     </div>
   );

@@ -85,7 +85,6 @@ export function RegisterForm() {
   async function googleRegister() {
     try {
       if (auth && firebaseReady) {
-        googleProvider.setCustomParameters({ prompt: 'select_account' });
         const credential = await signInWithPopup(auth, googleProvider);
         setGoogleUser(credential.user);
         setFullName(credential.user.displayName || "");

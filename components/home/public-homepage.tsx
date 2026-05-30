@@ -10,7 +10,6 @@ import {
   BookOpen,
   Calculator,
   Headphones,
-  Heart,
   MapPin,
   MessageCircle,
   NotebookTabs,
@@ -24,11 +23,9 @@ import {
   WalletCards
 } from "lucide-react";
 import { bangaloreColleges } from "@/lib/bangalore-colleges";
-import { products } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { useAuthStore } from "@/stores/auth-store";
 
 const categoryTiles = [
   { name: "Books", icon: BookOpen, color: "bg-ocean/10 text-ocean" },
@@ -51,19 +48,14 @@ const trustItems = [
 
 export function PublicHomepage() {
   const marketplaceProducts = useMarketplaceStore((state) => state.products);
-  const users = useAuthStore((state) => state.users);
-  
-  const verifiedUserIds = new Set(users.filter(u => u.verificationStatus === "approved").map(u => u.uid));
-  const approvedProducts = marketplaceProducts.filter(
-    p => p.status === "approved" && verifiedUserIds.has(p.sellerId)
-  );
+  const approvedProducts = marketplaceProducts.filter((product) => product.status === "approved");
 
   const featured = approvedProducts.slice(0, 4);
   const recent = approvedProducts.slice(0, 4);
 
   return (
     <div className="space-y-12">
-      <Hero />
+      <Hero products={featured.slice(0, 3)} />
       <CollegeShowcase />
       <Categories />
       {featured.length > 0 && <ProductSection eyebrow="Featured products" title="Student essentials ready to buy" products={featured} />}
@@ -73,7 +65,7 @@ export function PublicHomepage() {
   );
 }
 
-function Hero() {
+function Hero({ products }: { products: Product[] }) {
   return (
     <section className="relative overflow-hidden rounded-[2rem] bg-ink shadow-premium">
       <Image
@@ -85,7 +77,7 @@ function Hero() {
         className="object-cover opacity-42"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/86 to-ink/20" />
-      <div className="relative grid min-h-[560px] gap-10 p-6 sm:p-8 lg:grid-cols-[1fr_440px] lg:items-center lg:p-12">
+      <div className={`relative grid min-h-[560px] gap-10 p-6 sm:p-8 lg:items-center lg:p-12 ${products.length ? "lg:grid-cols-[1fr_440px]" : "lg:grid-cols-1"}`}>
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/[0.12] px-4 py-2 text-sm font-black text-mint backdrop-blur">
             <Sparkles className="size-4" />
@@ -108,26 +100,28 @@ function Hero() {
           </div>
         </motion.div>
 
-        <div className="relative hidden h-[420px] lg:block">
-          {products.slice(0, 3).map((product, index) => (
-            <motion.div
-              key={product.id}
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 3 + index, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-72 rounded-2xl border border-white/[0.14] bg-white/[0.14] p-3 shadow-premium backdrop-blur-xl"
-              style={{ right: index * 38, top: 28 + index * 102, zIndex: 4 - index }}
-            >
-              <div className="flex items-center gap-3">
-                <Image src={product.images[0]} alt="" width={76} height={76} className="size-19 rounded-xl object-cover" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-white">{product.name}</p>
-                  <p className="text-sm font-black text-mint">{formatPrice(product.price)}</p>
-                  <p className="truncate text-xs font-semibold text-white/[0.62]">{product.collegeName}</p>
+        {products.length ? (
+          <div className="relative hidden h-[420px] lg:block">
+            {products.map((product, index) => (
+              <motion.div
+                key={product.id}
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 3 + index, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute w-72 rounded-2xl border border-white/[0.14] bg-white/[0.14] p-3 shadow-premium backdrop-blur-xl"
+                style={{ right: index * 38, top: 28 + index * 102, zIndex: 4 - index }}
+              >
+                <div className="flex items-center gap-3">
+                  <Image src={product.images[0]} alt="" width={76} height={76} className="size-19 rounded-xl object-cover" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">{product.name}</p>
+                    <p className="text-sm font-black text-mint">{formatPrice(product.price)}</p>
+                    <p className="truncate text-xs font-semibold text-white/[0.62]">{product.collegeName}</p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );

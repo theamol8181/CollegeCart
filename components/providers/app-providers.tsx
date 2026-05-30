@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { saveUserProfile } from "@/lib/firestore";
+import { listenToProducts, saveUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -15,6 +15,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const { hydrateAuth, setUser, setHydrated } = useAuthStore();
   const { theme } = useThemeStore();
   const hydrateProducts = useMarketplaceStore((state) => state.hydrateProducts);
+  const setProducts = useMarketplaceStore((state) => state.setProducts);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -25,7 +26,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     hydrateProducts();
-  }, [hydrateProducts]);
+    return listenToProducts(setProducts);
+  }, [hydrateProducts, setProducts]);
 
   useEffect(() => {
     hydrateAuth();

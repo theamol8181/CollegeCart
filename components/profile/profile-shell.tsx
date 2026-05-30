@@ -8,7 +8,7 @@ import { demoUser } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { signOutUser } from "@/lib/firestore";
+import { deleteProduct, signOutUser } from "@/lib/firestore";
 
 const tabs = [
   { label: "My Listings", icon: ListChecks },
@@ -27,13 +27,12 @@ function readFileAsDataUrl(file: File) {
 }
 
 export function ProfileShell() {
-  const { user, users, logout } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { products, savedIds } = useMarketplaceStore();
   const [activeTab, setActiveTab] = useState("My Listings");
   const [editing, setEditing] = useState(false);
   const profile = user ?? demoUser;
-  const verifiedUserIds = new Set(users.filter((item) => item.verificationStatus === "approved").map((item) => item.uid));
-  const approvedProducts = products.filter((product) => product.status === "approved" && verifiedUserIds.has(product.sellerId));
+  const approvedProducts = products.filter((product) => product.status === "approved");
   const myListings = products.filter((product) => product.sellerId === profile.uid || product.sellerName === profile.fullName);
   const savedProducts = approvedProducts.filter((product) => savedIds.includes(product.id));
 
@@ -172,6 +171,7 @@ function ListingTable({ products }: { products: ReturnType<typeof useMarketplace
             onClick={() => {
               if (confirm("Are you sure you want to delete this product?")) {
                 removeProduct(product.id);
+                void deleteProduct(product.id);
               }
             }}
             className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-3 py-1 text-xs font-black text-coral transition hover:bg-coral/20"

@@ -37,7 +37,7 @@ export function MessagingShell() {
   // Get unique sellers from products (excluding current user)
   const sellers = Array.from(
     products
-      .filter(p => p.sellerId !== currentUser.uid)
+      .filter((product) => product.status === "approved" && product.sellerId !== currentUser.uid)
       .reduce((map, product) => {
         if (!map.has(product.sellerId)) {
           map.set(product.sellerId, {

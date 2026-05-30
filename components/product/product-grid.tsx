@@ -9,7 +9,7 @@ export function ProductGrid({ limit }: { limit?: number }) {
   const { products, query, category, condition, maxPrice } = useMarketplaceStore();
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = products
-    .filter((product) => !product.status || product.status === "approved")
+    .filter((product) => product.status === "approved")
     .filter((product) => product.price <= maxPrice)
     .filter((product) => category === "All" || product.category === category)
     .filter((product) => condition === "All" || product.condition === condition)

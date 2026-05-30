@@ -74,7 +74,6 @@ export function LoginForm() {
     try {
       let sessionUser: ReturnType<typeof buildSessionUser>;
       if (auth && firebaseReady) {
-        googleProvider.setCustomParameters({ prompt: 'select_account' });
         const credential = await signInWithPopup(auth, googleProvider);
         sessionUser = buildSessionUser(credential.user.email ?? "student@gmail.com", {
           uid: credential.user.uid,

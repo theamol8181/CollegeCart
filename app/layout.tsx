@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { defaultMetadata } from "@/lib/seo";
 import { AppProviders } from "@/components/providers/app-providers";
 import { Navbar } from "@/components/layout/navbar";
@@ -9,8 +8,6 @@ import { PWARegister } from "@/components/providers/pwa-register";
 import { AuthGate } from "@/components/providers/auth-gate";
 import { Footer } from "@/components/layout/footer";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   ...defaultMetadata,
@@ -49,7 +46,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${inter.variable} font-inter min-h-screen antialiased`}>
+      <body suppressHydrationWarning className="font-inter min-h-screen antialiased">
         <AppProviders>
           <AuthGate>
             <PullToRefresh>

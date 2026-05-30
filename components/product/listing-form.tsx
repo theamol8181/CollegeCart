@@ -26,9 +26,12 @@ export function ListingForm() {
       setLoading(true);
       setMessage("");
       const formData = new FormData(event.currentTarget);
-      const imageUrls = files.length
-        ? await Promise.all(files.map((file) => uploadToImageKit(file)))
-        : ["https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=1000&q=80"];
+      if (!files.length) {
+        setMessage("Kam se kam ek real product image upload karo.");
+        return;
+      }
+
+      const imageUrls = await Promise.all(files.map((file) => uploadToImageKit(file)));
 
       const product = {
         id: `local-${crypto.randomUUID()}`,
@@ -51,8 +54,8 @@ export function ListingForm() {
         status: "pending" as const
       };
 
-      addProduct(product);
-      await createProduct(product);
+      const savedId = await createProduct(product);
+      addProduct(savedId ? { ...product, id: savedId } : product);
       setMessage("Listing submit ho gayi. Admin approval ke baad marketplace me dikhegi.");
       setTimeout(() => router.push("/profile"), 900);
     } catch {
