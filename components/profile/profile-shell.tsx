@@ -99,7 +99,7 @@ export function ProfileShell() {
         {activeTab === "Saved Products" ? <ListingTable products={savedProducts} /> : null}
         {activeTab === "Purchase History" ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200">
-            You haven't purchased anything yet.
+            {"You haven&apos;t purchased anything yet."}
           </div>
         ) : null}
         {activeTab === "Account Settings" ? (
