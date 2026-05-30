@@ -46,18 +46,32 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
 }
 
 export function listenToProducts(onChange: (products: Product[]) => void) {
-  if (!db) return () => undefined;
+  if (!db) {
+    console.error("Firebase Firestore not initialized");
+    return () => undefined;
+  }
 
-  const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(80));
-  return onSnapshot(
-    productsQuery,
-    (snapshot) => {
-      onChange(snapshot.docs.map((item) => toProduct(item.id, item.data())));
-    },
-    (error) => {
-      console.error("Product sync failed", error);
-    }
-  );
+  try {
+    const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(80));
+    
+    return onSnapshot(
+      productsQuery,
+      (snapshot) => {
+        console.log("Products fetched from Firebase:", snapshot.size);
+        const products = snapshot.docs.map((item) => toProduct(item.id, item.data()));
+        onChange(products);
+      },
+      (error) => {
+        console.error("Product sync failed:", error.code, error.message);
+        if (error.code === "permission-denied") {
+          console.error("Firebase Firestore permission denied. Check security rules.");
+        }
+      }
+    );
+  } catch (error) {
+    console.error("Error setting up products listener:", error);
+    return () => undefined;
+  }
 }
 
 export async function saveUserProfile(profile: UserProfile) {
