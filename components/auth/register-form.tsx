@@ -21,13 +21,32 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [isGoogleFlow, setIsGoogleFlow] = useState(false);
+  const [googleUser, setGoogleUser] = useState<any>(null);
   const setUser = useAuthStore((state) => state.setUser);
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     let avatarUrl = "";
     if (avatar) avatarUrl = await uploadToImageKit(avatar, "/collegecart/avatars");
-    if (auth && firebaseReady) {
+    
+    if (isGoogleFlow && googleUser) {
+      const profile = {
+        uid: googleUser.uid,
+        fullName: googleUser.displayName || fullName,
+        collegeName,
+        email: googleUser.email,
+        phoneNumber,
+        year,
+        avatarUrl: googleUser.photoURL || avatarUrl || demoUser.avatarUrl,
+        role: "student" as const,
+        verificationStatus: "needs_id" as const,
+        online: true,
+        savedProductIds: []
+      };
+      setUser(profile);
+      await saveUserProfile(profile);
+    } else if (auth && firebaseReady) {
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(credential.user, { displayName: fullName, photoURL: avatarUrl });
       const profile = {
@@ -64,34 +83,70 @@ export function RegisterForm() {
   }
 
   async function googleRegister() {
-    if (auth && firebaseReady) {
-      const credential = await signInWithPopup(auth, googleProvider);
-      const profile = {
-        uid: credential.user.uid,
-        fullName: credential.user.displayName ?? "Google Student",
-        collegeName: "",
-        email: credential.user.email ?? "student@gmail.com",
-        avatarUrl: credential.user.photoURL ?? demoUser.avatarUrl,
-        role: "student" as const,
-        verificationStatus: "needs_id" as const,
-        online: true,
-        savedProductIds: []
-      };
-      setUser(profile);
-      await saveUserProfile(profile);
-    } else {
-      setUser({
-        ...demoUser,
-        uid: crypto.randomUUID(),
-        fullName: "Google Student",
-        collegeName: "",
-        email: "student@gmail.com",
-        role: "student",
-        verificationStatus: "needs_id",
-        savedProductIds: []
-      });
+    try {
+      if (auth && firebaseReady) {
+        const credential = await signInWithPopup(auth, googleProvider);
+        setGoogleUser(credential.user);
+        setFullName(credential.user.displayName || "");
+        setEmail(credential.user.email || "");
+        setIsGoogleFlow(true);
+      }
+    } catch (err) {
+      setError("Google signup failed. Please try again.");
     }
-    router.push("/verify-student");
+  }
+
+  if (isGoogleFlow && googleUser) {
+    return (
+      <form onSubmit={register} className="space-y-4">
+        <div className="rounded-2xl border border-white/[0.12] bg-white/10 px-4 py-3.5 text-white">
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">Google Account</p>
+          <p className="mt-2 text-sm font-semibold">{googleUser.displayName}</p>
+          <p className="text-xs text-white/60">{googleUser.email}</p>
+        </div>
+        
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">College</span>
+          <span className="mt-2 flex items-center gap-3 rounded-2xl border border-white/[0.12] bg-white/10 px-4 py-3.5 text-white">
+            <GraduationCap className="size-5 text-white/[0.42]" />
+            <select
+              required
+              value={collegeName}
+              onChange={(event) => setCollegeName(event.target.value)}
+              className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-white focus:ring-0"
+            >
+              <option value="">Select college</option>
+              {bangaloreColleges.map((college) => (
+                <option key={college.name} value={college.name}>{college.name}</option>
+              ))}
+            </select>
+          </span>
+        </label>
+        
+        <Field icon={<Phone className="size-5" />} label="Phone number" type="tel" value={phoneNumber} onChange={setPhoneNumber} />
+        
+        <label className="block">
+          <span className="text-xs font-black uppercase tracking-[0.16em] text-white/[0.45]">Year</span>
+          <span className="mt-2 flex items-center gap-3 rounded-2xl border border-white/[0.12] bg-white/10 px-4 py-3.5 text-white">
+            <GraduationCap className="size-5 text-white/[0.42]" />
+            <select
+              required
+              value={year}
+              onChange={(event) => setYear(event.target.value)}
+              className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-white focus:ring-0"
+            >
+              {years.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </span>
+        </label>
+        
+        {error ? <p className="rounded-2xl bg-coral/20 p-3 text-sm text-white">{error}</p> : null}
+        <button className="w-full rounded-2xl bg-white py-3.5 text-sm font-black text-ink shadow-premium">Complete Registration</button>
+        <button type="button" onClick={() => { setIsGoogleFlow(false); setGoogleUser(null); }} className="w-full rounded-2xl border border-white/[0.15] bg-white/10 py-3.5 text-sm font-black text-white">Back</button>
+      </form>
+    );
   }
 
   return (
@@ -136,7 +191,7 @@ export function RegisterForm() {
       <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/[0.12] bg-white/10 px-4 py-3.5 text-sm font-bold text-white/75">
         <Camera className="size-5 text-mint" />
         <span className="truncate">{avatar ? avatar.name : "Upload profile photo"}</span>
-        <input type="file" accept="image/*" className="hidden" onChange={(event) => setAvatar(event.target.files?.[0] ?? null)} />
+        <input type="file" accept="image/*" className="hidden" onChange={(event) => setAvatar(event.currentTarget.files?.[0] ?? null)} />
       </label>
       {error ? <p className="rounded-2xl bg-coral/20 p-3 text-sm text-white">{error}</p> : null}
       <button className="w-full rounded-2xl bg-white py-3.5 text-sm font-black text-ink shadow-premium">Create account</button>

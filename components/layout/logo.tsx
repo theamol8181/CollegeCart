@@ -7,7 +7,7 @@ export function Logo() {
       <span className="grid size-10 place-items-center rounded-2xl bg-ocean text-white shadow-glow">
         <ShoppingBag className="size-5" />
       </span>
-      <span className="hidden text-xl font-black tracking-tight text-ink dark:text-white sm:inline">
+      <span className="text-lg font-black tracking-tight text-ink dark:text-white sm:text-xl">
         College<span className="text-ocean">Cart</span>
       </span>
     </Link>

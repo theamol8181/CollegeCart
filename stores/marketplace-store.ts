@@ -17,6 +17,7 @@ type MarketplaceState = {
   approveProduct: (productId: string) => void;
   rejectProduct: (productId: string) => void;
   deleteProductLocal: (productId: string) => void;
+  removeProduct: (productId: string) => void;
   setQuery: (query: string) => void;
   setCategory: (category: ProductCategory | "All") => void;
   setCondition: (condition: ProductCondition | "All") => void;
@@ -63,6 +64,12 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       return { products: updated };
     }),
   deleteProductLocal: (productId) =>
+    set((state) => {
+      const updated = state.products.filter((product) => product.id !== productId);
+      if (typeof window !== "undefined") window.localStorage.setItem("collegecart-products", JSON.stringify(updated));
+      return { products: updated };
+    }),
+  removeProduct: (productId) =>
     set((state) => {
       const updated = state.products.filter((product) => product.id !== productId);
       if (typeof window !== "undefined") window.localStorage.setItem("collegecart-products", JSON.stringify(updated));

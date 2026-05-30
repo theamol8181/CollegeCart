@@ -140,6 +140,8 @@ function Setting({ label, value }: { label: string; value: string }) {
 }
 
 function ListingTable({ products }: { products: ReturnType<typeof useMarketplaceStore.getState>["products"] }) {
+  const { removeProduct } = useMarketplaceStore();
+  
   if (!products.length) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200">
@@ -151,7 +153,7 @@ function ListingTable({ products }: { products: ReturnType<typeof useMarketplace
   return (
     <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-white/[0.08]">
       {products.map((product) => (
-        <div key={product.id} className="grid gap-4 p-4 sm:grid-cols-[80px_1fr_auto] sm:items-center">
+        <div key={product.id} className="grid gap-4 p-4 sm:grid-cols-[80px_1fr_auto_auto] sm:items-center">
           <Image src={product.images[0]} alt="" width={80} height={80} unoptimized={product.images[0].startsWith("data:")} className="size-20 rounded-xl object-cover" />
           <div>
             <p className="font-black text-ink dark:text-white">{product.name}</p>
@@ -166,6 +168,16 @@ function ListingTable({ products }: { products: ReturnType<typeof useMarketplace
           }`}>
             {product.status ?? "approved"}
           </span>
+          <button
+            onClick={() => {
+              if (confirm("Are you sure you want to delete this product?")) {
+                removeProduct(product.id);
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-3 py-1 text-xs font-black text-coral transition hover:bg-coral/20"
+          >
+            Delete
+          </button>
         </div>
       ))}
     </div>
