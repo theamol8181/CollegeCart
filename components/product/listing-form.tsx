@@ -48,10 +48,13 @@ export function ListingForm() {
   }
 
   function updateFiles(fileList: FileList | null) {
-    const selected = Array.from(fileList ?? [])
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, maxImages);
-
+    const newFiles = Array.from(fileList ?? [])
+      .filter((file) => file.type.startsWith("image/"));
+    
+    // Append new files to existing files (don't replace)
+    const combined = [...files, ...newFiles];
+    const selected = combined.slice(0, maxImages);
+    
     setFiles(selected);
     setImageStatus(selected.length ? "ready" : "idle");
     setFormMessage(

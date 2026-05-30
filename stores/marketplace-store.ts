@@ -5,9 +5,34 @@ import type { Product, ProductCategory, ProductCondition } from "@/lib/types";
 
 const PRODUCTS_STORAGE_KEY = "collegecart-products";
 const REVIEW_STATUSES = new Set(["pending", "approved", "rejected", "sold"]);
+const MAX_STORAGE_ITEMS = 50;
 
 function keepRealListings(products: Product[]) {
   return products.filter((product) => product.status && REVIEW_STATUSES.has(product.status));
+}
+
+function safeSetItem(key: string, value: string) {
+  try {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(key, value);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("quota")) {
+      // Clear old products to make space
+      console.warn("Storage quota exceeded, clearing old products...");
+      try {
+        const stored = window.localStorage.getItem(key);
+        if (stored) {
+          const products = JSON.parse(stored) as Product[];
+          const approved = products.filter((p) => p.status === "approved").slice(0, MAX_STORAGE_ITEMS);
+          window.localStorage.setItem(key, JSON.stringify(approved));
+        }
+      } catch {
+        window.localStorage.removeItem(key);
+      }
+    } else {
+      console.error("Storage error:", error);
+    }
+  }
 }
 
 type MarketplaceState = {
@@ -46,9 +71,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
         (product) => product.id.startsWith("local-") && !remoteIds.has(product.id)
       );
       const mergedListings = [...localListings, ...realListings];
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
-      }
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
       return { products: mergedListings };
     }),
   hydrateProducts: () => {
@@ -57,7 +80,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     if (!stored) return;
     try {
       const realListings = keepRealListings(JSON.parse(stored) as Product[]);
-      window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(realListings));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(realListings));
       set({ products: realListings });
     } catch {
       window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
@@ -66,7 +89,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   addProduct: (product) =>
     set((state) => {
       const updated = keepRealListings([{ ...product, status: product.status ?? "pending" }, ...state.products]);
-      if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   approveProduct: (productId) =>
@@ -74,7 +97,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "approved" as const } : product
       );
-      if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   rejectProduct: (productId) =>
@@ -82,19 +105,19 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "rejected" as const } : product
       );
-      if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   deleteProductLocal: (productId) =>
     set((state) => {
       const updated = state.products.filter((product) => product.id !== productId);
-      if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   removeProduct: (productId) =>
     set((state) => {
       const updated = state.products.filter((product) => product.id !== productId);
-      if (typeof window !== "undefined") window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   setQuery: (query) => set({ query }),
