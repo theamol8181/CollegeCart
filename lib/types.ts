@@ -30,6 +30,7 @@ export type Product = {
   whatsappNumber: string;
   images: string[];
   createdAt: string;
+  updatedAt?: string;
   savedCount: number;
   views: number;
   status?: "pending" | "approved" | "rejected" | "sold";

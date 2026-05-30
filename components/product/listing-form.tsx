@@ -119,22 +119,24 @@ export function ListingForm() {
       setOverallProgress(100);
       setFormMessage("All images uploaded successfully!", "success");
 
+      const now = new Date().toISOString();
       const product = {
         id: `local-${crypto.randomUUID()}`,
-        name: String(formData.get("name")),
-        description: String(formData.get("description")),
+        name: String(formData.get("name")).trim(),
+        description: String(formData.get("description")).trim(),
         category: String(formData.get("category")) as ProductCategory,
         price: Number(formData.get("price")),
         condition: String(formData.get("condition")) as ProductCondition,
-        location: String(formData.get("location")),
-        contactNumber: String(formData.get("contactNumber")),
-        whatsappNumber: String(formData.get("whatsappNumber")),
+        location: String(formData.get("location")).trim(),
+        contactNumber: String(formData.get("contactNumber")).trim(),
+        whatsappNumber: String(formData.get("whatsappNumber")).trim(),
         images: imageUrls,
         sellerId: user?.uid ?? "demo-student",
         sellerName: user?.fullName ?? "CollegeCart Student",
         sellerAvatar: user?.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
         collegeName: user?.collegeName ?? "Campus",
-        createdAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
         savedCount: 0,
         views: 0,
         status: "pending" as const

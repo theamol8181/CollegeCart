@@ -24,26 +24,32 @@ export function AdminDashboard() {
   ];
 
   async function approveListing(productId: string) {
-    approveProduct(productId);
     // Only update Firebase if the product ID is actually saved in Firebase (not a local-* ID)
     if (!productId.startsWith("local-")) {
       try {
         await updateProductStatus(productId, "approved");
+        // Update local store after Firebase is updated successfully
+        approveProduct(productId);
       } catch (error) {
         console.error("Failed to update product status in Firebase:", error);
       }
+    } else {
+      approveProduct(productId);
     }
   }
 
   async function rejectListing(productId: string) {
-    rejectProduct(productId);
     // Only update Firebase if the product ID is actually saved in Firebase (not a local-* ID)
     if (!productId.startsWith("local-")) {
       try {
         await updateProductStatus(productId, "rejected");
+        // Update local store after Firebase is updated successfully
+        rejectProduct(productId);
       } catch (error) {
         console.error("Failed to update product status in Firebase:", error);
       }
+    } else {
+      rejectProduct(productId);
     }
   }
 
