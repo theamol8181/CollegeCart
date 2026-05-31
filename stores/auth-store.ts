@@ -93,6 +93,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       const users = upsertUser(state.users, user);
       if (typeof window !== "undefined") window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+      
+      // Save to Firebase immediately
+      import("@/lib/firestore").then(({ saveUserProfile }) => {
+        saveUserProfile(user);
+        console.log(`✅ User ID card submitted to Firebase: ${user.uid}`);
+      });
+      
       return { user, users };
     }),
   approveUser: (uid) =>

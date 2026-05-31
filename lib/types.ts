@@ -82,3 +82,70 @@ export type NotificationItem = {
   createdAt: string;
   unread: boolean;
 };
+
+export type DeliveryPartnerStatus = "pending" | "approved" | "rejected";
+
+export type DeliveryPartnerApplication = {
+  id: string;
+  uid: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  usn: string;
+  collegeName: string;
+  year: string;
+  department: string;
+  address: string;
+  emergencyContact: string;
+  accountHolderName: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  upiId: string;
+  idCardFront: string;
+  idCardBack: string;
+  profilePhoto: string;
+  status: DeliveryPartnerStatus;
+  rating: number;
+  completedDeliveries: number;
+  totalEarnings: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Order = {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string;
+  sellerId: string;
+  sellerName: string;
+  buyerId: string;
+  buyerName: string;
+  deliveryPartnerId?: string;
+  deliveryPartnerName?: string;
+  price: number;
+  deliveryCharge: number;
+  totalAmount: number;
+  collegeName: string;
+  pickupLocation: string;
+  dropLocation: string;
+  paymentMethod: "online" | "cod";
+  codHandlingCharge: number;
+  deliveryMethod: "meet" | "delivery";
+  status: "available" | "accepted" | "picked_up" | "on_way" | "delivered" | "completed";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Review = {
+  id: string;
+  orderId: string;
+  reviewerId: string;
+  reviewerName: string;
+  deliveryPartnerId: string;
+  rating: number;
+  text: string;
+  createdAt: string;
+};

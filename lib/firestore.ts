@@ -14,7 +14,8 @@ import {
   updateDoc,
   where
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, db, storage } from "@/lib/firebase";
 import type { Product, UserProfile } from "@/lib/types";
 
 function withoutUndefined<T extends Record<string, unknown>>(value: T) {
@@ -112,6 +113,27 @@ export async function saveUserProfile(profile: UserProfile) {
     ...cleanedProfile,
     updatedAt: serverTimestamp()
   }, { merge: true });
+}
+
+export async function uploadIdCardImage(userId: string, file: File): Promise<string> {
+  if (!storage) {
+    throw new Error("Firebase Storage not initialized");
+  }
+
+  try {
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
+    const storageRef = ref(storage, fileName);
+    
+    await uploadBytes(storageRef, file);
+    const downloadUrl = await getDownloadURL(storageRef);
+    
+    console.log(`✅ ID card uploaded to Storage: ${fileName}`);
+    return downloadUrl;
+  } catch (error) {
+    console.error("❌ Error uploading ID card:", error);
+    throw error;
+  }
 }
 
 export async function signOutUser() {

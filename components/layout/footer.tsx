@@ -1,12 +1,31 @@
 import Link from "next/link";
-import { Instagram } from "lucide-react";
+import { Instagram, Linkedin, X } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 
 const links = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
   { label: "Contact", href: "/contact" },
-  { label: "Support", href: "/support" }
+  { label: "Support", href: "/support" },
+  { label: "🚚 Become a Delivery Partner", href: "/delivery-partner" }
+];
+
+const socialLinks = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/collegecart.online?igsh=MWJ5bTBnZ3VvY3FjNA==",
+    icon: Instagram
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/college-cart-6a6b72412",
+    icon: Linkedin
+  },
+  {
+    label: "X",
+    href: "https://x.com/CartCollege",
+    icon: X
+  }
 ];
 
 export function Footer() {
@@ -24,15 +43,24 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
-            <a
-              href="https://www.instagram.com/collegecart.online?igsh=MWJ5bTBnZ3VvY3FjNA=="
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 transition hover:text-ocean"
-            >
-              <Instagram className="size-4" />
-              Instagram
-            </a>
+            <div className="flex gap-3">
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
+                return (
+                  <a
+                    key={social.href}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 transition hover:text-ocean"
+                    title={social.label}
+                  >
+                    <Icon className="size-4" />
+                    {social.label}
+                  </a>
+                );
+              })}
+            </div>
           </nav>
         </div>
       </div>

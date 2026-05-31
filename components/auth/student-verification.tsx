@@ -7,6 +7,7 @@ import { BadgeCheck, Camera, Clock3, GraduationCap, IdCard, Loader2, ShieldCheck
 import { bangaloreColleges, years } from "@/lib/bangalore-colleges";
 import { demoUser } from "@/lib/data";
 import { useAuthStore } from "@/stores/auth-store";
+import { uploadIdCardImage } from "@/lib/firestore";
 
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -48,10 +49,18 @@ export function StudentVerification() {
     setLoading(true);
     setMessage("");
     try {
-      const [idCardUrl, avatarUrl] = await Promise.all([
-        readFileAsDataUrl(idCard),
-        avatar ? readFileAsDataUrl(avatar) : Promise.resolve(currentUser.avatarUrl || demoUser.avatarUrl)
-      ]);
+      let idCardUrl: string;
+      try {
+        // Upload ID card image to Firebase Storage
+        idCardUrl = await uploadIdCardImage(user.uid, idCard);
+      } catch (error) {
+        console.error("❌ Storage upload failed, falling back to data URL:", error);
+        // Fallback to data URL if Storage upload fails
+        idCardUrl = await readFileAsDataUrl(idCard);
+      }
+
+      const avatarUrl = avatar ? await readFileAsDataUrl(avatar) : (currentUser.avatarUrl || demoUser.avatarUrl);
+      
       submitIdCard(idCardUrl, {
         avatarUrl,
         collegeName,
@@ -61,6 +70,9 @@ export function StudentVerification() {
         phoneNumber
       });
       setMessage("ID card uploaded. Your account is pending admin approval.");
+    } catch (error) {
+      console.error("❌ Error submitting ID card:", error);
+      setMessage(`Error: ${error instanceof Error ? error.message : "Failed to upload ID card"}`);
     } finally {
       setLoading(false);
     }
