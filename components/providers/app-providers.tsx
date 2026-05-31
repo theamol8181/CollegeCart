@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { listenToProducts, saveUserProfile } from "@/lib/firestore";
+import { listenToProducts, listenToUsers, saveUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { hydrateAuth, setUser, setHydrated } = useAuthStore();
+  const { hydrateAuth, setUser, setHydrated, setUsers } = useAuthStore();
   const { theme } = useThemeStore();
   const hydrateProducts = useMarketplaceStore((state) => state.hydrateProducts);
   const setProducts = useMarketplaceStore((state) => state.setProducts);
@@ -24,10 +24,16 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem("collegecart-theme", theme);
   }, [theme]);
 
+  // Listen to products from Firebase
   useEffect(() => {
     hydrateProducts();
     return listenToProducts(setProducts);
   }, [hydrateProducts, setProducts]);
+
+  // Listen to users from Firebase (for admin to see pending approvals)
+  useEffect(() => {
+    return listenToUsers(setUsers);
+  }, [setUsers]);
 
   useEffect(() => {
     hydrateAuth();

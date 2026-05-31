@@ -226,6 +226,49 @@ export async function updateProductStatus(productId: string, status: NonNullable
   }
 }
 
+export function listenToUsers(onChange: (users: UserProfile[]) => void) {
+  if (!db) {
+    console.error("❌ Firebase Firestore not initialized for users");
+    return () => undefined;
+  }
+
+  try {
+    const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    
+    return onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        console.log(`👥 Firebase users snapshot: ${snapshot.size} users`);
+        const users = snapshot.docs.map((item) => {
+          const data = item.data();
+          return {
+            ...data,
+            uid: item.id,
+            createdAt: data.createdAt || new Date().toISOString()
+          } as UserProfile;
+        });
+        
+        // Sort by: pending first, then approved, then rejected
+        const sorted = users.sort((a, b) => {
+          const statusOrder = { pending: 0, approved: 1, rejected: 2, needs_id: 3 };
+          const aOrder = statusOrder[a.verificationStatus as keyof typeof statusOrder] ?? 4;
+          const bOrder = statusOrder[b.verificationStatus as keyof typeof statusOrder] ?? 4;
+          return aOrder - bOrder;
+        });
+        
+        console.log(`✅ Users snapshot: ${users.filter(u => u.verificationStatus === 'pending').length} pending for approval`);
+        onChange(sorted);
+      },
+      (error) => {
+        console.error(`❌ User sync failed:`, error.code, error.message);
+      }
+    );
+  } catch (error) {
+    console.error("❌ Error setting up users listener:", error);
+    return () => undefined;
+  }
+}
+
 export async function saveWishlist(userId: string, productId: string) {
   if (!db) return;
   await setDoc(doc(db, "wishlists", `${userId}_${productId}`), {

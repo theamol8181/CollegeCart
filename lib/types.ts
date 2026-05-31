@@ -59,6 +59,8 @@ export type UserProfile = {
   role: "student" | "admin";
   online: boolean;
   savedProductIds: string[];
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type MessageThread = {

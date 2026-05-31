@@ -68,11 +68,19 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     set((state) => {
       const realListings = keepRealListings(products);
       const remoteIds = new Set(realListings.map((product) => product.id));
+      // Only keep local-* products that aren't in Firebase
       const localListings = state.products.filter(
         (product) => product.id.startsWith("local-") && !remoteIds.has(product.id)
       );
-      const mergedListings = [...localListings, ...realListings];
+      
+      // Merge: Firebase products (source of truth) + local products
+      const mergedListings = [...realListings, ...localListings];
+      
+      // Save to localStorage - Firebase data takes priority
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
+      
+      console.log(`📦 setProducts: ${realListings.length} from Firebase + ${localListings.length} local = ${mergedListings.length} total`);
+      
       return { products: mergedListings };
     }),
   hydrateProducts: () => {

@@ -31,7 +31,12 @@ export function AdminDashboard() {
       try {
         console.log(`⏳ Updating Firebase: ${productId} → "approved"`);
         await updateProductStatus(productId, "approved");
-        console.log(`✅ Firebase updated! Now updating local store...`);
+        console.log(`✅ Firebase updated! Clearing cache...`);
+        // Clear localStorage to force fresh sync from Firebase
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("collegecart-products");
+          console.log(`✅ Cache cleared! Listener will re-sync from Firebase...`);
+        }
         // Update local store after Firebase is updated successfully
         approveProduct(productId);
         console.log(`✅ Local store updated! Status: APPROVED`);
@@ -53,7 +58,12 @@ export function AdminDashboard() {
       try {
         console.log(`⏳ Updating Firebase: ${productId} → "rejected"`);
         await updateProductStatus(productId, "rejected");
-        console.log(`✅ Firebase updated! Now updating local store...`);
+        console.log(`✅ Firebase updated! Clearing cache...`);
+        // Clear localStorage to force fresh sync from Firebase
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem("collegecart-products");
+          console.log(`✅ Cache cleared! Listener will re-sync from Firebase...`);
+        }
         // Update local store after Firebase is updated successfully
         rejectProduct(productId);
         console.log(`✅ Local store updated! Status: REJECTED`);

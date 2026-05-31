@@ -11,6 +11,7 @@ type AuthState = {
   hydrated: boolean;
   setUser: (user: UserProfile | null) => void;
   hydrateAuth: () => void;
+  setUsers: (users: UserProfile[]) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
   submitIdCard: (idCardUrl: string, details: Partial<UserProfile>) => void;
   approveUser: (uid: string) => void;
@@ -57,6 +58,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       users: normalized ? upsertUser(state.users, normalized) : state.users
     }));
   },
+  setUsers: (users) => {
+    console.log(`👥 setUsers called with ${users.length} users`);
+    const normalized = users.map(normalizeUser);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("collegecart-users", JSON.stringify(normalized));
+    }
+    set({ users: normalized });
+  },
   hydrateAuth: () => {
     if (typeof window === "undefined") return;
     const storedUsers = window.localStorage.getItem("collegecart-users");
@@ -94,6 +103,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = state.user?.uid === uid ? { ...state.user, verificationStatus: "approved" as const } : state.user;
       storeUsers(users);
       if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+      
+      // Also save to Firebase
+      const approvedUser = users.find(u => u.uid === uid);
+      if (approvedUser) {
+        import("@/lib/firestore").then(({ saveUserProfile }) => {
+          saveUserProfile(approvedUser);
+          console.log(`✅ User approved in Firebase: ${uid}`);
+        });
+      }
+      
       return { users, user };
     }),
   rejectUser: (uid) =>
@@ -104,6 +123,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user = state.user?.uid === uid ? { ...state.user, verificationStatus: "rejected" as const } : state.user;
       storeUsers(users);
       if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+      
+      // Also save to Firebase
+      const rejectedUser = users.find(u => u.uid === uid);
+      if (rejectedUser) {
+        import("@/lib/firestore").then(({ saveUserProfile }) => {
+          saveUserProfile(rejectedUser);
+          console.log(`❌ User rejected in Firebase: ${uid}`);
+        });
+      }
+      
       return { users, user };
     }),
   setHydrated: (hydrated) => set({ hydrated }),
