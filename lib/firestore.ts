@@ -187,7 +187,7 @@ export async function updateProductStatus(productId: string, status: NonNullable
     throw new Error("Firebase not initialized");
   }
   
-  if (!auth.currentUser) {
+  if (!auth || !auth.currentUser) {
     console.error("❌ No user logged in");
     throw new Error("Not authenticated");
   }
