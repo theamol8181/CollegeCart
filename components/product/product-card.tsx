@@ -1,15 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, MapPin, MessageCircle } from "lucide-react";
+import { Heart, MapPin, MessageCircle, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { cn, formatPrice, timeAgo } from "@/lib/utils";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
+import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 export function ProductCard({ product }: { product: Product }) {
   const { savedIds, toggleSaved } = useMarketplaceStore();
+  const [showCheckout, setShowCheckout] = useState(false);
   const saved = savedIds.includes(product.id);
 
   return (
@@ -80,13 +83,23 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Link href={`/product/${product.id}`} className="rounded-xl bg-ink px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-ocean dark:bg-white dark:text-ink">
-            View deal
-          </Link>
+          <button
+            onClick={() => setShowCheckout(true)}
+            className="rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center justify-center gap-2"
+          >
+            <ShoppingCart className="size-4" />
+            Buy Now
+          </button>
           <Link href="/messages" aria-label="Chat seller" className="grid size-12 place-items-center rounded-xl bg-mint/12 text-emerald-600 ring-1 ring-mint/30">
             <MessageCircle className="size-5" />
           </Link>
         </div>
+
+        <CheckoutModal
+          product={product}
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+        />
       </div>
     </motion.article>
   );

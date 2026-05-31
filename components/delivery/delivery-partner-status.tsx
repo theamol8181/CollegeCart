@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Clock3, CheckCircle2, XCircle, Truck } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import type { DeliveryPartnerApplication } from "@/lib/types";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export function DeliveryPartnerStatus() {
   const router = useRouter();
@@ -18,13 +20,51 @@ export function DeliveryPartnerStatus() {
       return;
     }
 
-    // Load application from localStorage
-    if (typeof window !== "undefined") {
-      const applications = JSON.parse(localStorage.getItem("delivery-applications") || "[]");
-      const userApp = applications.find((app: DeliveryPartnerApplication) => app.uid === user.uid);
-      setApplication(userApp || null);
-    }
-    setLoading(false);
+    const loadApplication = async () => {
+      try {
+        // First try to find in Firestore
+        if (db) {
+          const applicationsSnap = await getDoc(doc(db, `delivery-applications/${user.uid}_latest`));
+          if (applicationsSnap.exists()) {
+            setApplication(applicationsSnap.data() as DeliveryPartnerApplication);
+            setLoading(false);
+            return;
+          }
+
+          // Try to find any application for this user
+          const { collection, query, where, getDocs } = await import("firebase/firestore");
+          const q = query(collection(db, "delivery-applications"), where("uid", "==", user.uid));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const docs = snapshot.docs.sort((a, b) => 
+              new Date(b.data().createdAt).getTime() - new Date(a.data().createdAt).getTime()
+            );
+            setApplication(docs[0].data() as DeliveryPartnerApplication);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Fallback to localStorage
+        if (typeof window !== "undefined") {
+          const applications = JSON.parse(localStorage.getItem("delivery-applications") || "[]");
+          const userApp = applications.find((app: DeliveryPartnerApplication) => app.uid === user.uid);
+          setApplication(userApp || null);
+        }
+      } catch (error) {
+        console.error("Error loading application:", error);
+        // Fallback to localStorage on error
+        if (typeof window !== "undefined") {
+          const applications = JSON.parse(localStorage.getItem("delivery-applications") || "[]");
+          const userApp = applications.find((app: DeliveryPartnerApplication) => app.uid === user.uid);
+          setApplication(userApp || null);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadApplication();
   }, [user, router]);
 
   if (loading) {

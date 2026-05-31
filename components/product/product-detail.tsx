@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Flag, Heart, MapPin, MessageCircle, Phone, Share2, ShieldCheck } from "lucide-react";
+import { Flag, Heart, MapPin, MessageCircle, Phone, Share2, ShieldCheck, ShoppingCart } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 import { ProductGrid } from "@/components/product/product-grid";
+import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 export function ProductDetail({ product }: { product: Product }) {
   const { savedIds, toggleSaved } = useMarketplaceStore();
+  const [showCheckout, setShowCheckout] = useState(false);
   const saved = savedIds.includes(product.id);
 
   return (
@@ -65,6 +68,13 @@ export function ProductDetail({ product }: { product: Product }) {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setShowCheckout(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-sm font-black text-white shadow-glow hover:bg-blue-700 transition"
+            >
+              <ShoppingCart className="size-5" />
+              Buy Now
+            </button>
             <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-ocean px-4 py-4 text-sm font-black text-white shadow-glow">
               <MessageCircle className="size-5" />
               Chat Seller
@@ -73,15 +83,17 @@ export function ProductDetail({ product }: { product: Product }) {
               <Phone className="size-5" />
               WhatsApp
             </a>
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black text-ink ring-1 ring-slate-200 dark:bg-white/10 dark:text-white dark:ring-white/10">
-              <Share2 className="size-5" />
-              Save Product
-            </button>
             <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black text-coral ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
               <Flag className="size-5" />
               Report
             </button>
           </div>
+
+          <CheckoutModal
+            product={product}
+            isOpen={showCheckout}
+            onClose={() => setShowCheckout(false)}
+          />
         </aside>
       </section>
 

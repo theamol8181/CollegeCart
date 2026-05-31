@@ -94,8 +94,19 @@ export function DeliveryPartnerForm() {
     setMessage("");
 
     try {
-      // Here you would upload to Firebase
-      // For now, we'll store the application locally
+      // Import Firestore functions
+      const { uploadIdCardImage } = await import("@/lib/firestore");
+      const { saveUserProfile } = await import("@/lib/firestore");
+      const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase");
+
+      // Upload all documents to Firebase Storage
+      const [idCardFrontUrl, idCardBackUrl, profilePhotoUrl] = await Promise.all([
+        uploadIdCardImage(user.uid, files.idCardFront),
+        uploadIdCardImage(user.uid, files.idCardBack),
+        uploadIdCardImage(user.uid, files.profilePhoto)
+      ]);
+
       const applicationId = `dp_${user.uid}_${Date.now()}`;
       const application: DeliveryPartnerApplication = {
         id: applicationId,
@@ -115,9 +126,9 @@ export function DeliveryPartnerForm() {
         accountNumber: formData.accountNumber,
         ifscCode: formData.ifscCode,
         upiId: formData.upiId,
-        idCardFront: URL.createObjectURL(files.idCardFront),
-        idCardBack: URL.createObjectURL(files.idCardBack),
-        profilePhoto: URL.createObjectURL(files.profilePhoto),
+        idCardFront: idCardFrontUrl,
+        idCardBack: idCardBackUrl,
+        profilePhoto: profilePhotoUrl,
         status: "pending",
         rating: 0,
         completedDeliveries: 0,
@@ -126,7 +137,13 @@ export function DeliveryPartnerForm() {
         updatedAt: new Date().toISOString()
       };
 
-      // Store in localStorage for demo
+      // Save to Firestore
+      if (db) {
+        await setDoc(doc(db, "delivery-applications", applicationId), application, { merge: true });
+        console.log(`✅ Delivery partner application saved to Firestore: ${applicationId}`);
+      }
+
+      // Also save to localStorage for fallback
       if (typeof window !== "undefined") {
         const applications = JSON.parse(localStorage.getItem("delivery-applications") || "[]");
         applications.push(application);
@@ -137,7 +154,7 @@ export function DeliveryPartnerForm() {
       setTimeout(() => router.push("/delivery-partner/status"), 1500);
     } catch (error) {
       console.error("Error submitting application:", error);
-      setMessage("Error submitting application. Please try again.");
+      setMessage(`Error: ${error instanceof Error ? error.message : "Failed to submit application"}`);
     } finally {
       setLoading(false);
     }

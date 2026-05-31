@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -26,6 +27,7 @@ import { bangaloreColleges } from "@/lib/bangalore-colleges";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
+import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 const categoryTiles = [
   { name: "Books", icon: BookOpen, color: "bg-ocean/10 text-ocean" },
@@ -180,6 +182,8 @@ function Categories() {
 }
 
 function ProductSection({ eyebrow, title, products }: { eyebrow: string; title: string; products: Product[] }) {
+  const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
+
   return (
     <section>
       <SectionHeading eyebrow={eyebrow} title={title} action />
@@ -203,19 +207,30 @@ function ProductSection({ eyebrow, title, products }: { eyebrow: string; title: 
                 </p>
               </div>
               <div className="grid gap-2">
-                <a href={`https://wa.me/${product.whatsappNumber.replace(/\D/g, "")}`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink">
-                  <MessageCircle className="size-4" />
-                  WhatsApp Seller
-                </a>
-                <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-3 py-2.5 text-xs font-black text-white dark:bg-white dark:text-ink">
+                <button 
+                  onClick={() => setCheckoutProduct(product)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-black text-white hover:bg-blue-700 transition"
+                >
                   <ShoppingCart className="size-4" />
-                  Add to Cart
+                  Buy Now
                 </button>
+                <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink hover:bg-emerald-300 transition">
+                  <MessageCircle className="size-4" />
+                  Chat Seller
+                </Link>
               </div>
             </div>
           </article>
         ))}
       </div>
+
+      {checkoutProduct && (
+        <CheckoutModal
+          product={checkoutProduct}
+          isOpen={!!checkoutProduct}
+          onClose={() => setCheckoutProduct(null)}
+        />
+      )}
     </section>
   );
 }

@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public products (everyone can read, authenticated users can create)
+    match /products/{document=**} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth.uid == resource.data.sellerId;
+    }
+
+    // User profiles (users can read/write their own, admins can read all)
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || isAdmin();
+      allow create, update: if request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Delivery partner applications (users can read/write their own, admins can read all)
+    match /delivery-applications/{doc=**} {
+      allow read: if request.auth.uid == resource.data.uid || isAdmin();
+      allow create: if request.auth != null;
+      allow update: if request.auth.uid == resource.data.uid || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Orders (users involved can read, admins can manage)
+    match /orders/{orderId} {
+      allow read: if request.auth.uid == resource.data.buyerId 
+                     || request.auth.uid == resource.data.sellerId 
+                     || request.auth.uid == resource.data.deliveryPartnerId 
+                     || isAdmin();
+      allow create: if request.auth.uid == request.resource.data.buyerId;
+      allow update: if request.auth.uid == resource.data.buyerId 
+                      || request.auth.uid == resource.data.sellerId 
+                      || request.auth.uid == resource.data.deliveryPartnerId 
+                      || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Reviews (users can create reviews, admins can manage)
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth.uid == request.resource.data.reviewerId;
+      allow update, delete: if isAdmin();
+    }
+
+    // Wishlists (users can manage their own)
+    match /wishlists/{doc=**} {
+      allow read, write: if request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId;
+    }
+
+    // Firebase Storage permissions (in rules for storage bucket)
+  }
+
+  // Helper function to check if user is admin
+  function isAdmin() {
+    return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+  }
+}
+
+// Firebase Storage Rules (use this in your storage bucket rules)
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to upload and download images
+    match /idcards/{userId}/{allPaths=**} {
+      allow read: if request.auth.uid == userId || isUserAdmin();
+      allow write: if request.auth.uid == userId;
+    }
+
+    match /delivery-documents/{userId}/{allPaths=**} {
+      allow read: if request.auth.uid == userId || isUserAdmin();
+      allow write: if request.auth.uid == userId;
+    }
+
+    match /order-images/{orderId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+
+  function isUserAdmin() {
+    return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+  }
+}
