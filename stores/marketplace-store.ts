@@ -8,7 +8,8 @@ const REVIEW_STATUSES = new Set(["pending", "approved", "rejected", "sold"]);
 const MAX_STORAGE_ITEMS = 50;
 
 function keepRealListings(products: Product[]) {
-  return products.filter((product) => product.status && REVIEW_STATUSES.has(product.status));
+  // Keep all products - don't filter by status here, let listeners and UI handle filtering
+  return products.filter((product) => product.id && !product.id.startsWith("temp-"));
 }
 
 function safeSetItem(key: string, value: string) {

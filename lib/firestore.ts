@@ -61,10 +61,20 @@ export function listenToProducts(onChange: (products: Product[]) => void) {
         console.log(`📦 Firebase snapshot: ${snapshot.size} products`);
         const products = snapshot.docs.map((item) => {
           const product = toProduct(item.id, item.data());
-          console.log(`  - ${product.name} (${product.id}): status=${product.status}`);
+          console.log(`  ✓ ${product.name} (${product.id}): status="${product.status}"`);
           return product;
         });
-        onChange(products);
+        
+        // Sort by status: approved first, then pending, then others
+        const sorted = products.sort((a, b) => {
+          const statusOrder = { approved: 0, pending: 1, rejected: 2, sold: 3 };
+          const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 4;
+          const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 4;
+          return aOrder - bOrder;
+        });
+        
+        console.log(`✅ Snapshot ready: ${products.filter(p => p.status === 'approved').length} approved products`);
+        onChange(sorted);
       },
       (error) => {
         console.error(`❌ Product sync failed:`, error.code, error.message);
@@ -177,9 +187,27 @@ export async function updateProductStatus(productId: string, status: NonNullable
     throw new Error("Firebase not initialized");
   }
   
+  if (!auth.currentUser) {
+    console.error("❌ No user logged in");
+    throw new Error("Not authenticated");
+  }
+  
   try {
     console.log(`🔧 updateProductStatus called: ${productId} → ${status}`);
+    console.log(`   Current user: ${auth.currentUser.uid}`);
+    
     const docRef = doc(db, "products", productId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      console.error(`❌ Product not found: ${productId}`);
+      throw new Error("Product not found");
+    }
+    
+    const productData = docSnap.data();
+    console.log(`   Product data: ${JSON.stringify(productData)}`);
+    console.log(`   Current status: ${productData.status}`);
+    console.log(`   New status: ${status}`);
     
     await updateDoc(docRef, {
       status,
@@ -189,6 +217,11 @@ export async function updateProductStatus(productId: string, status: NonNullable
     console.log(`✅ Firebase updateDoc successful: ${productId} is now "${status}"`);
   } catch (error) {
     console.error(`❌ Firebase updateDoc failed for ${productId}:`, error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes("permission-denied")) {
+      console.error("❌ PERMISSION DENIED - Check Firestore Security Rules!");
+      console.error("❌ Make sure admin has 'admin' role in users collection");
+    }
     throw error;
   }
 }

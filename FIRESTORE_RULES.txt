@@ -2,9 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check if user is admin
+    // Helper function to check if user is admin - safe version that handles missing data
     function isAdmin(uid) {
-      return get(/databases/$(database)/documents/users/$(uid)).data.role == 'admin';
+      let userDoc = get(/databases/$(database)/documents/users/$(uid));
+      return userDoc.data.get('role', 'user') == 'admin';
     }
     
     // Helper to check auth
