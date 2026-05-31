@@ -105,29 +105,6 @@ export const products: Product[] = [
     isTrending: true
   },
   {
-    id: "scientific-calculator",
-    name: "Casio FX-991ES",
-    description:
-      "Original scientific calculator, exam allowed, with cover. Battery is strong and all keys work perfectly.",
-    category: "Calculators",
-    price: 500,
-    condition: "Used",
-    sellerId: "seller-4",
-    sellerName: "Dev Patel",
-    sellerAvatar:
-      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=256&q=80",
-    collegeName: "MS Ramaiah Institute of Technology (MSRIT)",
-    location: "Mathikere",
-    contactNumber: "+91 90000 11122",
-    whatsappNumber: "+919000011122",
-    images: [
-      "https://images.unsplash.com/photo-1611532736580-0c4cecf6e12d?auto=format&fit=crop&w=1000&q=80"
-    ],
-    createdAt: "2026-05-25T08:45:00.000Z",
-    savedCount: 24,
-    views: 188
-  },
-  {
     id: "gaming-keyboard",
     name: "boAt Rockerz Bluetooth Headphones",
     description:
