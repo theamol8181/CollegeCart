@@ -24,32 +24,46 @@ export function AdminDashboard() {
   ];
 
   async function approveListing(productId: string) {
+    console.log(`🔵 APPROVE CLICKED: ${productId}`);
+    
     // Only update Firebase if the product ID is actually saved in Firebase (not a local-* ID)
     if (!productId.startsWith("local-")) {
       try {
+        console.log(`⏳ Updating Firebase: ${productId} → "approved"`);
         await updateProductStatus(productId, "approved");
+        console.log(`✅ Firebase updated! Now updating local store...`);
         // Update local store after Firebase is updated successfully
         approveProduct(productId);
+        console.log(`✅ Local store updated! Status: APPROVED`);
       } catch (error) {
-        console.error("Failed to update product status in Firebase:", error);
+        console.error("❌ Failed to update product status in Firebase:", error);
+        alert("Error approving product: " + (error instanceof Error ? error.message : String(error)));
       }
     } else {
       approveProduct(productId);
+      console.log(`✅ Local product approved: ${productId}`);
     }
   }
 
   async function rejectListing(productId: string) {
+    console.log(`🔴 REJECT CLICKED: ${productId}`);
+    
     // Only update Firebase if the product ID is actually saved in Firebase (not a local-* ID)
     if (!productId.startsWith("local-")) {
       try {
+        console.log(`⏳ Updating Firebase: ${productId} → "rejected"`);
         await updateProductStatus(productId, "rejected");
+        console.log(`✅ Firebase updated! Now updating local store...`);
         // Update local store after Firebase is updated successfully
         rejectProduct(productId);
+        console.log(`✅ Local store updated! Status: REJECTED`);
       } catch (error) {
-        console.error("Failed to update product status in Firebase:", error);
+        console.error("❌ Failed to update product status in Firebase:", error);
+        alert("Error rejecting product: " + (error instanceof Error ? error.message : String(error)));
       }
     } else {
       rejectProduct(productId);
+      console.log(`✅ Local product rejected: ${productId}`);
     }
   }
 

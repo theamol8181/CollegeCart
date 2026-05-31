@@ -48,7 +48,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
 
 export function listenToProducts(onChange: (products: Product[]) => void) {
   if (!db) {
-    console.error("Firebase Firestore not initialized");
+    console.error("❌ Firebase Firestore not initialized");
     return () => undefined;
   }
 
@@ -58,19 +58,24 @@ export function listenToProducts(onChange: (products: Product[]) => void) {
     return onSnapshot(
       productsQuery,
       (snapshot) => {
-        console.log("Products fetched from Firebase:", snapshot.size);
-        const products = snapshot.docs.map((item) => toProduct(item.id, item.data()));
+        console.log(`📦 Firebase snapshot: ${snapshot.size} products`);
+        const products = snapshot.docs.map((item) => {
+          const product = toProduct(item.id, item.data());
+          console.log(`  - ${product.name} (${product.id}): status=${product.status}`);
+          return product;
+        });
         onChange(products);
       },
       (error) => {
-        console.error("Product sync failed:", error.code, error.message);
+        console.error(`❌ Product sync failed:`, error.code, error.message);
         if (error.code === "permission-denied") {
-          console.error("Firebase Firestore permission denied. Check security rules.");
+          console.error("❌ PERMISSION DENIED! Firebase Firestore rules might be blocking updates.");
+          console.error("Check your Firestore Security Rules!");
         }
       }
     );
   } catch (error) {
-    console.error("Error setting up products listener:", error);
+    console.error("❌ Error setting up products listener:", error);
     return () => undefined;
   }
 }
@@ -167,11 +172,25 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function updateProductStatus(productId: string, status: NonNullable<Product["status"]>) {
-  if (!db) return;
-  await updateDoc(doc(db, "products", productId), {
-    status,
-    updatedAt: serverTimestamp()
-  });
+  if (!db) {
+    console.error("❌ Firebase DB not initialized");
+    throw new Error("Firebase not initialized");
+  }
+  
+  try {
+    console.log(`🔧 updateProductStatus called: ${productId} → ${status}`);
+    const docRef = doc(db, "products", productId);
+    
+    await updateDoc(docRef, {
+      status,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log(`✅ Firebase updateDoc successful: ${productId} is now "${status}"`);
+  } catch (error) {
+    console.error(`❌ Firebase updateDoc failed for ${productId}:`, error);
+    throw error;
+  }
 }
 
 export async function saveWishlist(userId: string, productId: string) {
