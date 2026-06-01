@@ -237,7 +237,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
                 <div className="ml-4 flex-1">
                   <p className="font-semibold text-gray-800">Campus Delivery</p>
                   <p className="text-sm text-gray-600">
-                    We'll deliver to your location
+                    We&apos;ll deliver to your location
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Delivery Charge: ₹{deliveryCharge}
