@@ -4,8 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 
-const publicRoutes = new Set(["/", "/login", "/register", "/search", "/privacy", "/terms", "/contact", "/support"]);
-const verificationRoutes = new Set(["/verify-student", "/profile"]);
+const publicRoutes = new Set(["/", "/login", "/register", "/search", "/privacy", "/terms", "/contact", "/support", "/verify-student"]);
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,15 +21,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
     if (user.role !== "admin" && pathname === "/admin") {
-      router.replace(user.verificationStatus === "approved" ? "/dashboard" : "/verify-student");
+      router.replace("/dashboard");
       return;
     }
     if (pathname === "/login" || pathname === "/register") {
-      router.replace(user.verificationStatus === "approved" ? "/dashboard" : "/verify-student");
+      router.replace("/dashboard");
       return;
-    }
-    if (user.role !== "admin" && user.verificationStatus !== "approved" && !isPublic && !verificationRoutes.has(pathname)) {
-      router.replace("/verify-student");
     }
   }, [hydrated, isPublic, pathname, router, user]);
 

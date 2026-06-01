@@ -77,7 +77,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         idCardUrl: existing?.idCardUrl,
         avatarUrl: existing?.avatarUrl || firebaseUser.photoURL || "",
         role: isAdmin ? ("admin" as const) : ("student" as const),
-        verificationStatus: isAdmin ? ("approved" as const) : existing?.verificationStatus ?? ("needs_id" as const),
+        verificationStatus: ("approved" as const),
         online: true,
         savedProductIds: existing?.savedProductIds ?? [],
         createdAt: existing?.createdAt
