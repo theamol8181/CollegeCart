@@ -21,9 +21,15 @@ export default function OrdersPage() {
       return;
     }
 
+    const firestore = db;
+    if (!firestore) {
+      setLoading(false);
+      return;
+    }
+
     const fetchOrders = async () => {
       try {
-        const ordersRef = collection(db, "orders");
+        const ordersRef = collection(firestore, "orders");
         const q = query(ordersRef, where("buyerId", "==", user.uid));
         const querySnapshot = await getDocs(q);
 

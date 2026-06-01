@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Order } from "@/lib/types";
 
@@ -17,9 +17,15 @@ export default function TrackOrderPage() {
   useEffect(() => {
     if (!orderId) return;
 
+    const firestore = db;
+    if (!firestore) {
+      setLoading(false);
+      return;
+    }
+
     // Real-time listener for order updates
     const unsubscribe = onSnapshot(
-      doc(db, "orders", orderId),
+      doc(firestore, "orders", orderId),
       (doc) => {
         if (doc.exists()) {
           setOrder({ id: doc.id, ...doc.data() } as Order);

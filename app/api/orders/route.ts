@@ -58,6 +58,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase is not configured" },
+        { status: 503 }
+      );
+    }
+
     // Verify product exists
     const productRef = doc(db, "products", productId);
     const productSnap = await getDoc(productRef);
@@ -129,6 +136,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: "Order ID is required" },
         { status: 400 }
+      );
+    }
+
+    if (!db) {
+      return NextResponse.json(
+        { error: "Firebase is not configured" },
+        { status: 503 }
       );
     }
 

@@ -53,7 +53,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
           sellerId: product.sellerId,
           sellerName: product.sellerName,
           buyerId: user.uid,
-          buyerName: user.displayName || "Customer",
+          buyerName: user.fullName || "Customer",
           price: product.price,
           deliveryCharge: deliveryMethod === "delivery" ? deliveryCharge : 0,
           collegeName: product.collegeName,
@@ -123,7 +123,7 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
               }
             },
             prefill: {
-              name: user.displayName || "",
+              name: user.fullName || "",
               email: user.email || "",
             },
           };

@@ -20,9 +20,15 @@ export default function OrderSuccessPage() {
       return;
     }
 
+    const firestore = db;
+    if (!firestore) {
+      setLoading(false);
+      return;
+    }
+
     const fetchOrder = async () => {
       try {
-        const orderRef = doc(db, "orders", orderId);
+        const orderRef = doc(firestore, "orders", orderId);
         const orderSnap = await getDoc(orderRef);
         if (orderSnap.exists()) {
           setOrder({ id: orderSnap.id, ...orderSnap.data() } as Order);

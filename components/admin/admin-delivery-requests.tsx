@@ -45,8 +45,14 @@ export function AdminDeliveryRequests() {
   ];
 
   async function approveApplication(appId: string) {
+    const firestore = db;
+    if (!firestore) {
+      alert("Firebase is not configured");
+      return;
+    }
+
     try {
-      await updateDoc(doc(db, "delivery-applications", appId), {
+      await updateDoc(doc(firestore, "delivery-applications", appId), {
         status: "approved",
         updatedAt: new Date().toISOString()
       });
@@ -58,8 +64,14 @@ export function AdminDeliveryRequests() {
   }
 
   async function rejectApplication(appId: string) {
+    const firestore = db;
+    if (!firestore) {
+      alert("Firebase is not configured");
+      return;
+    }
+
     try {
-      await updateDoc(doc(db, "delivery-applications", appId), {
+      await updateDoc(doc(firestore, "delivery-applications", appId), {
         status: "rejected",
         updatedAt: new Date().toISOString()
       });
