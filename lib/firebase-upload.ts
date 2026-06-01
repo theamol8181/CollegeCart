@@ -1,5 +1,5 @@
 import { storage, auth } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL, UploadTaskSnapshot } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export type UploadProgressCallback = (progress: number) => void;
 
@@ -46,25 +46,16 @@ export async function uploadToFirebaseStorage(
     console.log("⏳ Uploading bytes to Firebase Storage...");
     onProgress?.(40);
 
-    // Upload file with timeout
-    const uploadPromise = uploadBytes(storageRef, file);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Upload timeout - took more than 2 minutes")), 2 * 60 * 1000)
-    );
-    
-    const snapshot = (await Promise.race([uploadPromise, timeoutPromise])) as UploadTaskSnapshot;
+    // Upload file - no timeout, Firebase handles it
+    console.log("⏳ Uploading bytes to Firebase Storage...");
+    const snapshot = await uploadBytes(storageRef, file);
     
     console.log("✅ File bytes uploaded successfully");
     onProgress?.(70);
 
-    // Get download URL with timeout
+    // Get download URL with extended timeout
     console.log("📥 Retrieving download URL...");
-    const urlPromise = getDownloadURL(snapshot.ref);
-    const urlTimeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("URL generation timeout")), 30000)
-    );
-    
-    const downloadUrl = (await Promise.race([urlPromise, urlTimeoutPromise])) as string;
+    const downloadUrl = (await getDownloadURL(snapshot.ref)) as string;
     
     console.log("✅ Download URL retrieved:", downloadUrl.substring(0, 50) + "...");
     onProgress?.(100);
@@ -80,9 +71,11 @@ export async function uploadToFirebaseStorage(
       if (error.message.includes("permission")) {
         errorMessage = "Permission denied - check Firebase security rules";
       } else if (error.message.includes("timeout")) {
-        errorMessage = "Upload timeout - file may be too large or network too slow";
+        errorMessage = "Upload timeout - file may be too large or network too slow. Please check browser console and try again.";
       } else if (error.message.includes("too large")) {
         errorMessage = error.message;
+      } else if (error.message.includes("CORS") || error.message.includes("blocked")) {
+        errorMessage = "Network blocked - check your firewall or try a different network";
       } else {
         errorMessage = error.message;
       }
