@@ -14,6 +14,11 @@ export async function GET() {
 
   if (missingVars.length > 0) {
     console.error("❌ ImageKit configuration incomplete. Missing:", missingVars);
+    console.error("Available env vars:", {
+      hasPublicKey: !!process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
+      hasPrivateKey: !!process.env.IMAGEKIT_PRIVATE_KEY,
+      hasUrlEndpoint: !!process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT
+    });
     return NextResponse.json(
       {
         error: "ImageKit is not properly configured.",
@@ -26,9 +31,19 @@ export async function GET() {
   try {
     const token = randomUUID();
     const expire = Math.floor(Date.now() / 1000) + 2400;
-    const signature = createHmac("sha1", privateKey!).update(token + expire).digest("hex");
+    
+    // Validate private key is not empty
+    if (!privateKey || privateKey.trim().length === 0) {
+      throw new Error("Private key is empty");
+    }
+    
+    const signature = createHmac("sha1", privateKey).update(token + expire).digest("hex");
 
-    console.log("✅ ImageKit auth generated successfully");
+    console.log("✅ ImageKit auth generated successfully", {
+      token: token.slice(0, 8) + "...",
+      expire,
+      publicKeyPrefix: publicKey.slice(0, 15) + "..."
+    });
     return NextResponse.json({
       token,
       expire,
@@ -36,9 +51,15 @@ export async function GET() {
       publicKey
     });
   } catch (error) {
-    console.error("❌ Error generating ImageKit auth:", error);
+    console.error("❌ Error generating ImageKit auth:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { error: "Failed to generate upload authentication" },
+      { 
+        error: "Failed to generate upload authentication",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     );
   }

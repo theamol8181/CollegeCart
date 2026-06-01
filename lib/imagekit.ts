@@ -8,13 +8,30 @@ export type ImageKitAuth = {
 export type UploadProgressCallback = (progress: number) => void;
 
 export async function getImageKitAuth(): Promise<ImageKitAuth> {
-  const response = await fetch("/api/imagekit-auth");
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("ImageKit auth error:", errorText);
-    throw new Error("Image upload authorization failed: " + response.statusText);
+  try {
+    console.log("🔐 Requesting ImageKit auth from /api/imagekit-auth...");
+    const response = await fetch("/api/imagekit-auth");
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ ImageKit auth API returned error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`API error ${response.status}: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log("✅ ImageKit auth received successfully");
+    return data;
+  } catch (error) {
+    console.error("❌ ImageKit auth request failed:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw new Error("Image upload authorization failed: " + (error instanceof Error ? error.message : String(error)));
   }
-  return response.json();
 }
 
 export async function uploadToImageKit(

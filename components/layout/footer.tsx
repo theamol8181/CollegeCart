@@ -6,8 +6,7 @@ const links = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
   { label: "Contact", href: "/contact" },
-  { label: "Support", href: "/support" },
-  { label: "🚚 Become a Delivery Partner", href: "/delivery-partner" }
+  { label: "Support", href: "/support" }
 ];
 
 const socialLinks = [
