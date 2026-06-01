@@ -42,6 +42,13 @@ export function DashboardShell() {
 
   return (
     <div className="space-y-8">
+      <section className="rounded-[2rem] border-2 border-ocean/30 bg-ocean/5 p-6">
+        <h2 className="text-2xl font-black text-ink dark:text-white">📢 MVP Update</h2>
+        <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+          In our MVP, all product listings are managed manually by the CollegeCart team. To sell your product, please fill out our <a href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" className="font-bold text-ocean hover:underline">seller form</a>. Our team will review and publish your listing.
+        </p>
+      </section>
+
       <section className="relative overflow-hidden rounded-[2rem] bg-ink p-6 shadow-premium sm:p-8 lg:p-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(38,215,164,0.22),transparent_24rem),radial-gradient(circle_at_88%_10%,rgba(249,200,70,0.18),transparent_22rem)]" />
         <div className="relative grid gap-8 lg:grid-cols-[1fr_380px] lg:items-center">
@@ -62,10 +69,10 @@ export function DashboardShell() {
               <span className="rounded-full bg-mint px-4 py-2 text-sm font-black text-ink">Profile {completion}% complete</span>
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/sell" className="inline-flex items-center gap-2 rounded-full bg-ocean px-5 py-3 text-sm font-black text-white shadow-glow">
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-ocean px-5 py-3 text-sm font-black text-white shadow-glow">
                 Sell product
                 <ArrowRight className="size-4" />
-              </Link>
+              </a>
               <Link href="/search" className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-black text-white backdrop-blur">
                 Browse listings
               </Link>

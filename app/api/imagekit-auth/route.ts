@@ -42,7 +42,7 @@ export async function GET() {
     console.log("✅ ImageKit auth generated successfully", {
       token: token.slice(0, 8) + "...",
       expire,
-      publicKeyPrefix: publicKey.slice(0, 15) + "..."
+      publicKeyPrefix: (publicKey as string).slice(0, 15) + "..."
     });
     return NextResponse.json({
       token,

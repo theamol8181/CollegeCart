@@ -64,9 +64,14 @@ export function Navbar() {
                 Dashboard
               </Link>
             )}
-            <Link href="/sell" className="rounded-full bg-ocean px-5 py-3 text-sm font-bold text-white shadow-glow">
+            <a 
+              href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor"
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="rounded-full bg-ocean px-5 py-3 text-sm font-bold text-white shadow-glow"
+            >
               Sell Product
-            </Link>
+            </a>
             {user ? (
               <>
                 <IconLink href="/notifications" label="Notifications" icon={<Bell className="size-5" />} />

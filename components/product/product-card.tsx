@@ -4,16 +4,31 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, MapPin, MessageCircle, ShoppingCart } from "lucide-react";
+import { Heart, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { cn, formatPrice, timeAgo } from "@/lib/utils";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 export function ProductCard({ product }: { product: Product }) {
   const { savedIds, toggleSaved } = useMarketplaceStore();
-  const [showCheckout, setShowCheckout] = useState(false);
   const saved = savedIds.includes(product.id);
+
+  function openWhatsApp() {
+    const phoneNumber = product.whatsappNumber.replace(/\D/g, "");
+    const message = `Hello CollegeCart,
+
+I am interested in this product.
+
+Product Name: ${product.name}
+Price: ₹${product.price}
+
+Please share availability, payment details and delivery information.
+
+Thank you.`;
+    
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  }
 
   return (
     <motion.article
@@ -84,22 +99,16 @@ export function ProductCard({ product }: { product: Product }) {
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <button
-            onClick={() => setShowCheckout(true)}
-            className="rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center justify-center gap-2"
+            onClick={openWhatsApp}
+            className="rounded-xl bg-mint px-4 py-3 text-center text-sm font-bold text-ink transition hover:bg-emerald-300 flex items-center justify-center gap-2"
           >
-            <ShoppingCart className="size-4" />
+            <Phone className="size-4" />
             Buy Now
           </button>
           <Link href="/messages" aria-label="Chat seller" className="grid size-12 place-items-center rounded-xl bg-mint/12 text-emerald-600 ring-1 ring-mint/30">
             <MessageCircle className="size-5" />
           </Link>
         </div>
-
-        <CheckoutModal
-          product={product}
-          isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
-        />
       </div>
     </motion.article>
   );

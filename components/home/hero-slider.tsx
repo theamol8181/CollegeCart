@@ -29,9 +29,9 @@ export function HeroSlider() {
               Explore deals
               <ArrowRight className="size-4" />
             </Link>
-            <Link href="/sell" className="rounded-full border border-white/[0.35] bg-white/[0.12] px-5 py-3 text-sm font-black text-white backdrop-blur">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" className="rounded-full border border-white/[0.35] bg-white/[0.12] px-5 py-3 text-sm font-black text-white backdrop-blur">
               Sell product
-            </Link>
+            </a>
           </div>
         </motion.div>
       </div>

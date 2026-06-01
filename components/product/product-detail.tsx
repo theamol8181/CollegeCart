@@ -4,17 +4,32 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Flag, Heart, MapPin, MessageCircle, Phone, Share2, ShieldCheck, ShoppingCart } from "lucide-react";
+import { Flag, Heart, MapPin, MessageCircle, Phone, Share2, ShieldCheck } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 import { ProductGrid } from "@/components/product/product-grid";
-import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 export function ProductDetail({ product }: { product: Product }) {
   const { savedIds, toggleSaved } = useMarketplaceStore();
-  const [showCheckout, setShowCheckout] = useState(false);
   const saved = savedIds.includes(product.id);
+
+  function openWhatsApp() {
+    const phoneNumber = product.whatsappNumber.replace(/\D/g, "");
+    const message = `Hello CollegeCart,
+
+I am interested in this product.
+
+Product Name: ${product.name}
+Price: ₹${product.price}
+
+Please share availability, payment details and delivery information.
+
+Thank you.`;
+    
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  }
 
   return (
     <div className="space-y-10">
@@ -69,37 +84,38 @@ export function ProductDetail({ product }: { product: Product }) {
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <button
-              onClick={() => setShowCheckout(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-sm font-black text-white shadow-glow hover:bg-blue-700 transition"
+              onClick={openWhatsApp}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow hover:bg-emerald-300 transition"
             >
-              <ShoppingCart className="size-5" />
+              <Phone className="size-5" />
               Buy Now
             </button>
             <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-ocean px-4 py-4 text-sm font-black text-white shadow-glow">
               <MessageCircle className="size-5" />
               Chat Seller
             </Link>
-            <a href={`https://wa.me/${product.whatsappNumber.replace(/\D/g, "")}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink">
-              <Phone className="size-5" />
-              WhatsApp
-            </a>
             <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black text-coral ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
               <Flag className="size-5" />
               Report
             </button>
+            <Link href={`https://wa.me/${product.whatsappNumber.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-sm font-black text-white shadow-glow hover:bg-blue-700 transition">
+              <MessageCircle className="size-5" />
+              Direct WhatsApp
+            </Link>
           </div>
-
-          <CheckoutModal
-            product={product}
-            isOpen={showCheckout}
-            onClose={() => setShowCheckout(false)}
-          />
         </aside>
       </section>
 
       <section className="glass rounded-[2rem] p-6">
         <h2 className="text-2xl font-black text-ink dark:text-white">Product description</h2>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 dark:text-slate-300">{product.description}</p>
+      </section>
+
+      <section className="rounded-[2rem] border-2 border-amber-300/30 bg-amber-50 p-6 dark:border-amber-900/30 dark:bg-amber-950/10">
+        <h3 className="text-lg font-black text-amber-900 dark:text-amber-100">📋 How ordering works</h3>
+        <p className="mt-3 text-sm leading-7 text-amber-800 dark:text-amber-200">
+          Orders are processed manually by the CollegeCart team. After contacting us on WhatsApp, we will confirm availability and arrange delivery. Payment and delivery details will be shared by our team.
+        </p>
       </section>
 
       <section>

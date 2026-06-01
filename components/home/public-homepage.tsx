@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -15,9 +14,9 @@ import {
   MessageCircle,
   NotebookTabs,
   Package,
+  Phone,
   Shirt,
   ShieldCheck,
-  ShoppingCart,
   Smartphone,
   Sparkles,
   Utensils,
@@ -27,7 +26,6 @@ import { bangaloreColleges } from "@/lib/bangalore-colleges";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { CheckoutModal } from "@/components/checkout/checkout-modal";
 
 const categoryTiles = [
   { name: "Books", icon: BookOpen, color: "bg-ocean/10 text-ocean" },
@@ -96,9 +94,9 @@ function Hero({ products }: { products: Product[] }) {
               Browse Products
               <ArrowRight className="size-4" />
             </Link>
-            <Link href="/sell" className="rounded-full bg-ocean px-5 py-3 text-sm font-black text-white shadow-glow transition hover:-translate-y-1">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" className="rounded-full bg-ocean px-5 py-3 text-sm font-black text-white shadow-glow transition hover:-translate-y-1">
               Sell Product
-            </Link>
+            </a>
           </div>
         </motion.div>
 
@@ -182,7 +180,22 @@ function Categories() {
 }
 
 function ProductSection({ eyebrow, title, products }: { eyebrow: string; title: string; products: Product[] }) {
-  const [checkoutProduct, setCheckoutProduct] = useState<Product | null>(null);
+  function openWhatsApp(product: Product) {
+    const phoneNumber = product.whatsappNumber.replace(/\D/g, "");
+    const message = `Hello CollegeCart,
+
+I am interested in this product.
+
+Product Name: ${product.name}
+Price: ₹${product.price}
+
+Please share availability, payment details and delivery information.
+
+Thank you.`;
+    
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, "_blank");
+  }
 
   return (
     <section>
@@ -208,13 +221,13 @@ function ProductSection({ eyebrow, title, products }: { eyebrow: string; title: 
               </div>
               <div className="grid gap-2">
                 <button 
-                  onClick={() => setCheckoutProduct(product)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-black text-white hover:bg-blue-700 transition"
+                  onClick={() => openWhatsApp(product)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink hover:bg-emerald-300 transition"
                 >
-                  <ShoppingCart className="size-4" />
+                  <Phone className="size-4" />
                   Buy Now
                 </button>
-                <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink hover:bg-emerald-300 transition">
+                <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-xl bg-ocean px-3 py-2.5 text-xs font-black text-white hover:bg-blue-700 transition">
                   <MessageCircle className="size-4" />
                   Chat Seller
                 </Link>
@@ -223,14 +236,6 @@ function ProductSection({ eyebrow, title, products }: { eyebrow: string; title: 
           </article>
         ))}
       </div>
-
-      {checkoutProduct && (
-        <CheckoutModal
-          product={checkoutProduct}
-          isOpen={!!checkoutProduct}
-          onClose={() => setCheckoutProduct(null)}
-        />
-      )}
     </section>
   );
 }
