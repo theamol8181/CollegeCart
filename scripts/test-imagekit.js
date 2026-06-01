@@ -3,8 +3,6 @@
  * Test script to verify ImageKit configuration and upload functionality
  */
 
-import fetch from 'node-fetch';
-
 async function testImageKitSetup() {
   console.log('🧪 Testing ImageKit Setup...\n');
 
@@ -16,7 +14,7 @@ async function testImageKitSetup() {
     'IMAGEKIT_PRIVATE_KEY'
   ];
 
-  const missing: string[] = [];
+  const missing = [];
   for (const varName of requiredVars) {
     const value = process.env[varName];
     if (!value) {
@@ -44,12 +42,7 @@ async function testImageKitSetup() {
       process.exit(1);
     }
 
-    const auth = await response.json() as {
-      token: string;
-      expire: number;
-      signature: string;
-      publicKey: string;
-    };
+    const auth = await response.json();
 
     console.log(`   ✅ Auth endpoint working`);
     console.log(`      Token: ${auth.token.substring(0, 8)}...`);
