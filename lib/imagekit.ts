@@ -25,14 +25,12 @@ export async function uploadToImageKit(
   let auth: ImageKitAuth;
   
   try {
-    console.log("Getting ImageKit auth...");
+    console.log("🔐 Getting ImageKit auth...");
     auth = await getImageKitAuth();
-    console.log("Auth received, uploading file:", file.name);
+    console.log("✅ Auth received, uploading file:", file.name);
   } catch (error) {
-    console.error("Auth failed, using local fallback:", error);
-    const dataUrl = await fileToCompressedDataUrl(file);
-    onProgress?.(100);
-    return dataUrl;
+    console.error("❌ ImageKit auth failed:", error);
+    throw new Error(`ImageKit authentication failed. Please ensure ImageKit credentials are properly configured.`);
   }
 
   const formData = new FormData();
@@ -45,29 +43,27 @@ export async function uploadToImageKit(
   formData.append("token", auth.token);
 
   try {
+    console.log("📤 Uploading to ImageKit:", folder);
     const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
       method: "POST",
       body: formData
     });
 
-    // Simulate progress during upload
     onProgress?.(80);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error("ImageKit upload error:", response.status, errorData);
-      throw new Error(`ImageKit upload failed: ${response.status}`);
+      console.error("❌ ImageKit upload error:", response.status, errorData);
+      throw new Error(`ImageKit upload failed with status ${response.status}: ${errorData}`);
     }
 
     const data = (await response.json()) as { url: string };
-    console.log("Upload successful:", data.url);
+    console.log("✅ Upload successful:", data.url);
     onProgress?.(100);
     return data.url;
   } catch (error) {
-    console.error("Upload failed, using fallback:", error);
-    const dataUrl = await fileToCompressedDataUrl(file);
-    onProgress?.(100);
-    return dataUrl;
+    console.error("❌ ImageKit upload failed:", error);
+    throw new Error(`Failed to upload to ImageKit: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

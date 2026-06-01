@@ -44,11 +44,20 @@ export function StudentVerification() {
       let idCardUrl: string;
       try {
         // Upload ID card image to Firebase Storage
+        console.log("📤 Attempting Firebase Storage upload...");
         idCardUrl = await uploadIdCardImage(user.uid, idCard);
-      } catch (error) {
-        console.error("❌ Storage upload failed, using fallback upload:", error);
-        // Fallback to ImageKit or a compressed data URL if Storage rules are not ready.
-        idCardUrl = await uploadToImageKit(idCard, "/collegecart/idcards");
+        console.log("✅ Firebase Storage upload successful");
+      } catch (firebaseError) {
+        console.warn("⚠️ Firebase Storage upload failed, trying ImageKit:", firebaseError);
+        // Fallback to ImageKit
+        try {
+          console.log("🔄 Falling back to ImageKit...");
+          idCardUrl = await uploadToImageKit(idCard, "/collegecart/idcards");
+          console.log("✅ ImageKit upload successful");
+        } catch (imageKitError) {
+          console.error("❌ Both Firebase and ImageKit uploads failed:", imageKitError);
+          throw new Error("Failed to upload ID card. Please check your connection and try again.");
+        }
       }
 
       const avatarUrl = avatar
@@ -63,7 +72,7 @@ export function StudentVerification() {
         department,
         phoneNumber
       });
-      setMessage("ID card uploaded. Your account is pending admin approval.");
+      setMessage("ID card uploaded successfully! Your account is pending admin approval.");
     } catch (error) {
       console.error("❌ Error submitting ID card:", error);
       setMessage(`Error: ${error instanceof Error ? error.message : "Failed to upload ID card"}`);
