@@ -94,21 +94,41 @@ export function DeliveryPartnerForm() {
     setMessage("");
 
     try {
-      // Import ImageKit upload function
-      const { uploadToImageKit } = await import("@/lib/imagekit");
-      const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
-      const { db } = await import("@/lib/firebase");
-
-      console.log("📤 Uploading delivery partner documents to ImageKit...");
+      console.log("📤 Starting document upload...");
       
-      // Upload all documents to ImageKit
-      const [idCardFrontUrl, idCardBackUrl, profilePhotoUrl] = await Promise.all([
-        uploadToImageKit(files.idCardFront, "/collegecart/delivery-partners/id-front"),
-        uploadToImageKit(files.idCardBack, "/collegecart/delivery-partners/id-back"),
-        uploadToImageKit(files.profilePhoto, "/collegecart/delivery-partners/profiles")
-      ]);
+      let idCardFrontUrl: string;
+      let idCardBackUrl: string;
+      let profilePhotoUrl: string;
 
-      console.log("✅ All documents uploaded to ImageKit successfully");
+      // Try ImageKit first, fallback to Firebase if it fails
+      try {
+        console.log("🔄 Attempting ImageKit upload...");
+        const { uploadToImageKit } = await import("@/lib/imagekit");
+        
+        [idCardFrontUrl, idCardBackUrl, profilePhotoUrl] = await Promise.all([
+          uploadToImageKit(files.idCardFront, "/collegecart/delivery-partners/id-front"),
+          uploadToImageKit(files.idCardBack, "/collegecart/delivery-partners/id-back"),
+          uploadToImageKit(files.profilePhoto, "/collegecart/delivery-partners/profiles")
+        ]);
+        
+        console.log("✅ ImageKit upload successful");
+      } catch (imageKitError) {
+        console.warn("⚠️ ImageKit upload failed, using Firebase Storage fallback...", imageKitError);
+        
+        // Fallback to Firebase Storage
+        const { uploadIdCardImage } = await import("@/lib/firestore");
+        
+        [idCardFrontUrl, idCardBackUrl, profilePhotoUrl] = await Promise.all([
+          uploadIdCardImage(user.uid, files.idCardFront),
+          uploadIdCardImage(user.uid, files.idCardBack),
+          uploadIdCardImage(user.uid, files.profilePhoto)
+        ]);
+        
+        console.log("✅ Firebase Storage upload successful (fallback)");
+      }
+
+      const { setDoc, doc } = await import("firebase/firestore");
+      const { db } = await import("@/lib/firebase");
 
       const applicationId = `dp_${user.uid}_${Date.now()}`;
       const application: DeliveryPartnerApplication = {
@@ -144,7 +164,7 @@ export function DeliveryPartnerForm() {
       if (db) {
         console.log("💾 Saving application to Firestore...");
         await setDoc(doc(db, "delivery-applications", applicationId), application, { merge: true });
-        console.log(`✅ Delivery partner application saved to Firestore: ${applicationId}`);
+        console.log(`✅ Delivery partner application saved: ${applicationId}`);
       }
 
       // Also save to localStorage for fallback
@@ -158,7 +178,8 @@ export function DeliveryPartnerForm() {
       setTimeout(() => router.push("/delivery-partner/status"), 1500);
     } catch (error) {
       console.error("❌ Error submitting application:", error);
-      setMessage(`❌ Error: ${error instanceof Error ? error.message : "Failed to submit application"}`);
+      const errorMsg = error instanceof Error ? error.message : "Failed to submit application";
+      setMessage(`❌ Error: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
