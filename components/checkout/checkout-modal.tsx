@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth-store";
@@ -162,10 +163,13 @@ export function CheckoutModal({ product, isOpen, onClose }: CheckoutModalProps) 
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex gap-4">
               {product.images[0] && (
-                <img
+                <Image
                   src={product.images[0]}
                   alt={product.name}
+                  width={80}
+                  height={80}
                   className="w-20 h-20 object-cover rounded-lg"
+                  unoptimized={product.images[0].startsWith("data:")}
                 />
               )}
               <div className="flex-1">

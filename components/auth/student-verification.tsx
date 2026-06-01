@@ -123,7 +123,7 @@ export function StudentVerification() {
               <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">{user.collegeName} - {user.usn || "USN not added"}</p>
             </div>
           </div>
-          {user.idCardUrl ? <img src={user.idCardUrl} alt="Uploaded college ID card" className="mt-5 max-h-80 rounded-2xl object-contain ring-1 ring-slate-200 dark:ring-white/10" /> : null}
+          {user.idCardUrl ? <Image src={user.idCardUrl} alt="Uploaded college ID card" width={400} height={300} className="mt-5 max-h-80 rounded-2xl object-contain ring-1 ring-slate-200 dark:ring-white/10" unoptimized={user.idCardUrl.startsWith("data:")} /> : null}
         </section>
       ) : (
         <form onSubmit={submit} className="grid gap-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.08] sm:p-8 lg:grid-cols-2">

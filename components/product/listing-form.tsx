@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, ImagePlus, Loader2, Send, X } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { categories } from "@/lib/data";
@@ -272,7 +273,7 @@ export function ListingForm() {
             {previews.map((preview, index) => (
               <div key={preview.url} className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/10">
                 <div className="relative aspect-[4/3]">
-                  <img src={preview.url} alt={preview.name} className="size-full object-cover" />
+                  <Image src={preview.url} alt={preview.name} fill className="size-full object-cover" unoptimized={preview.url.startsWith("data:")} />
                   {imageStatus === "uploading" && uploadProgress[index] !== undefined && (
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                       <span className="text-sm font-black text-white">{uploadProgress[index]}%</span>

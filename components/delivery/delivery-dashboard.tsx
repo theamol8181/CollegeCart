@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Package, Clock3, CheckCircle2, DollarSign, Star, MapPin } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
@@ -182,7 +183,7 @@ function OrderCard({ order, completed }: { order: Order; completed?: boolean }) 
     <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200 dark:bg-white/[0.08] dark:ring-white/10">
       <div className="grid gap-4 p-5 sm:grid-cols-[auto_1fr_auto]">
         {/* Product Image */}
-        <img src={order.productImage} alt={order.productName} className="size-20 rounded-xl object-cover" />
+        <Image src={order.productImage} alt={order.productName} width={80} height={80} className="size-20 rounded-xl object-cover" unoptimized={order.productImage.startsWith("data:")} />
 
         {/* Order Info */}
         <div>
