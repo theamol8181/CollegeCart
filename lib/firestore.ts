@@ -122,7 +122,7 @@ export async function uploadIdCardImage(userId: string, file: File): Promise<str
 
   try {
     const fileExt = file.name.split(".").pop() || "jpg";
-    const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
+    const fileName = `idcards/${userId}/${Date.now()}.${fileExt}`;
     const storageRef = ref(storage, fileName);
     
     await uploadBytes(storageRef, file);

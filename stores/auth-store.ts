@@ -13,7 +13,7 @@ type AuthState = {
   hydrateAuth: () => void;
   setUsers: (users: UserProfile[]) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
-  submitIdCard: (idCardUrl: string, details: Partial<UserProfile>) => void;
+  submitIdCard: (idCardUrl: string, details: Partial<UserProfile>) => Promise<void>;
   approveUser: (uid: string) => void;
   rejectUser: (uid: string) => void;
   setHydrated: (value: boolean) => void;
@@ -43,7 +43,7 @@ function upsertUser(users: UserProfile[], user: UserProfile) {
   return updated;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   users: [],
   hydrated: false,
@@ -82,26 +82,25 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (typeof window !== "undefined") window.localStorage.setItem("collegecart-user", JSON.stringify(user));
       return { user, users };
     }),
-  submitIdCard: (idCardUrl, details) =>
-    set((state) => {
-      if (!state.user) return state;
-      const user = normalizeUser({
-        ...state.user,
-        ...details,
-        idCardUrl,
-        verificationStatus: "pending"
-      });
-      const users = upsertUser(state.users, user);
-      if (typeof window !== "undefined") window.localStorage.setItem("collegecart-user", JSON.stringify(user));
-      
-      // Save to Firebase immediately
-      import("@/lib/firestore").then(({ saveUserProfile }) => {
-        saveUserProfile(user);
-        console.log(`✅ User ID card submitted to Firebase: ${user.uid}`);
-      });
-      
-      return { user, users };
-    }),
+  submitIdCard: async (idCardUrl, details) => {
+    const currentUser = get().user;
+    if (!currentUser) return;
+
+    const user = normalizeUser({
+      ...currentUser,
+      ...details,
+      idCardUrl,
+      verificationStatus: "pending"
+    });
+
+    const { saveUserProfile } = await import("@/lib/firestore");
+    await saveUserProfile(user);
+
+    const users = upsertUser(get().users, user);
+    if (typeof window !== "undefined") window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+    set({ user, users });
+    console.log(`User ID card submitted to Firebase: ${user.uid}`);
+  },
   approveUser: (uid) =>
     set((state) => {
       const users = state.users.map((item) =>

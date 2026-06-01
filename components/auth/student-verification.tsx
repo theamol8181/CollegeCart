@@ -8,6 +8,7 @@ import { bangaloreColleges, years } from "@/lib/bangalore-colleges";
 import { demoUser } from "@/lib/data";
 import { useAuthStore } from "@/stores/auth-store";
 import { uploadIdCardImage } from "@/lib/firestore";
+import { uploadToImageKit } from "@/lib/imagekit";
 
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -54,14 +55,14 @@ export function StudentVerification() {
         // Upload ID card image to Firebase Storage
         idCardUrl = await uploadIdCardImage(user.uid, idCard);
       } catch (error) {
-        console.error("❌ Storage upload failed, falling back to data URL:", error);
-        // Fallback to data URL if Storage upload fails
-        idCardUrl = await readFileAsDataUrl(idCard);
+        console.error("❌ Storage upload failed, using fallback upload:", error);
+        // Fallback to ImageKit or a compressed data URL if Storage rules are not ready.
+        idCardUrl = await uploadToImageKit(idCard, "/collegecart/idcards");
       }
 
       const avatarUrl = avatar ? await readFileAsDataUrl(avatar) : (currentUser.avatarUrl || demoUser.avatarUrl);
       
-      submitIdCard(idCardUrl, {
+      await submitIdCard(idCardUrl, {
         avatarUrl,
         collegeName,
         year,
