@@ -14,7 +14,7 @@ import { AdminOrders } from "./admin-orders";
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery" | "orders">("marketplace");
   const { products, approveProduct, rejectProduct, deleteProductLocal } = useMarketplaceStore();
-  const { users, approveUser, rejectUser } = useAuthStore();
+  const { users, approveUser, rejectUser, refreshUserFromFirebase } = useAuthStore();
   const reviewProducts = products.filter((product) => Boolean(product.status));
   const pending = reviewProducts.filter((product) => product.status === "pending");
   const rejected = reviewProducts.filter((product) => product.status === "rejected");
@@ -79,6 +79,26 @@ export function AdminDashboard() {
       rejectProduct(productId);
       console.log(`✅ Local product rejected: ${productId}`);
     }
+  }
+
+  async function approveUserWithRefresh(uid: string) {
+    console.log(`✅ Approving user: ${uid}`);
+    approveUser(uid);
+    // Refresh user immediately after approval
+    setTimeout(() => {
+      refreshUserFromFirebase(uid);
+      console.log(`🔄 Refreshed user from Firebase`);
+    }, 500);
+  }
+
+  async function rejectUserWithRefresh(uid: string) {
+    console.log(`❌ Rejecting user: ${uid}`);
+    rejectUser(uid);
+    // Refresh user immediately after rejection
+    setTimeout(() => {
+      refreshUserFromFirebase(uid);
+      console.log(`🔄 Refreshed user from Firebase`);
+    }, 500);
   }
 
   async function removeListing(productId: string) {
@@ -241,11 +261,11 @@ export function AdminDashboard() {
                   <div className="flex flex-wrap gap-2">
                     {student.verificationStatus === "pending" ? (
                       <>
-                        <button onClick={() => approveUser(student.uid)} className="inline-flex items-center gap-2 rounded-full bg-mint/12 px-4 py-2 text-sm font-black text-emerald-700 dark:text-mint">
+                        <button onClick={() => void approveUserWithRefresh(student.uid)} className="inline-flex items-center gap-2 rounded-full bg-mint/12 px-4 py-2 text-sm font-black text-emerald-700 dark:text-mint">
                           <CheckCircle2 className="size-4" />
                           Approve
                         </button>
-                        <button onClick={() => rejectUser(student.uid)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
+                        <button onClick={() => void rejectUserWithRefresh(student.uid)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
                           <XCircle className="size-4" />
                           Reject
                         </button>

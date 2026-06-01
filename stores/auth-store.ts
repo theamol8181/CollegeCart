@@ -16,6 +16,7 @@ type AuthState = {
   submitIdCard: (idCardUrl: string, details: Partial<UserProfile>) => Promise<void>;
   approveUser: (uid: string) => void;
   rejectUser: (uid: string) => void;
+  refreshUserFromFirebase: (uid: string) => Promise<void>;
   setHydrated: (value: boolean) => void;
   logout: () => void;
 };
@@ -103,53 +104,84 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   approveUser: (uid) => {
     set((state) => {
-      const users = state.users.map((item) =>
-        item.uid === uid ? { ...item, verificationStatus: "approved" as const } : item
+      const updatedUsers = state.users.map((item) =>
+        item.uid === uid ? { ...item, verificationStatus: "approved" as const, updatedAt: new Date().toISOString() } : item
       );
-      const user = state.user?.uid === uid ? { ...state.user, verificationStatus: "approved" as const } : state.user;
-      storeUsers(users);
-      if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+      const updatedUser = state.user?.uid === uid ? { ...state.user, verificationStatus: "approved" as const, updatedAt: new Date().toISOString() } : state.user;
       
-      // Save to Firebase IMMEDIATELY and wait for it
-      const approvedUser = users.find(u => u.uid === uid);
+      // Store immediately
+      storeUsers(updatedUsers);
+      if (typeof window !== "undefined" && updatedUser) {
+        window.localStorage.setItem("collegecart-user", JSON.stringify(updatedUser));
+      }
+      
+      console.log(`💾 Local state updated: ${uid} → approved`);
+      
+      // Save to Firebase
+      const approvedUser = updatedUsers.find(u => u.uid === uid);
       if (approvedUser) {
         import("@/lib/firestore").then(async ({ saveUserProfile }) => {
           try {
+            console.log(`🔄 Saving approval to Firebase for: ${uid}`);
             await saveUserProfile(approvedUser);
-            console.log(`✅ User approved in Firebase: ${uid}`);
+            console.log(`✅ User approved PERMANENTLY in Firebase: ${uid}`);
           } catch (error) {
             console.error(`❌ Failed to save approval to Firebase:`, error);
           }
         });
       }
       
-      return { users, user };
+      return { users: updatedUsers, user: updatedUser };
     });
   },
   rejectUser: (uid) => {
     set((state) => {
-      const users = state.users.map((item) =>
-        item.uid === uid ? { ...item, verificationStatus: "rejected" as const } : item
+      const updatedUsers = state.users.map((item) =>
+        item.uid === uid ? { ...item, verificationStatus: "rejected" as const, updatedAt: new Date().toISOString() } : item
       );
-      const user = state.user?.uid === uid ? { ...state.user, verificationStatus: "rejected" as const } : state.user;
-      storeUsers(users);
-      if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
+      const updatedUser = state.user?.uid === uid ? { ...state.user, verificationStatus: "rejected" as const, updatedAt: new Date().toISOString() } : state.user;
       
-      // Save to Firebase IMMEDIATELY and wait for it
-      const rejectedUser = users.find(u => u.uid === uid);
+      // Store immediately
+      storeUsers(updatedUsers);
+      if (typeof window !== "undefined" && updatedUser) {
+        window.localStorage.setItem("collegecart-user", JSON.stringify(updatedUser));
+      }
+      
+      console.log(`💾 Local state updated: ${uid} → rejected`);
+      
+      // Save to Firebase
+      const rejectedUser = updatedUsers.find(u => u.uid === uid);
       if (rejectedUser) {
         import("@/lib/firestore").then(async ({ saveUserProfile }) => {
           try {
+            console.log(`🔄 Saving rejection to Firebase for: ${uid}`);
             await saveUserProfile(rejectedUser);
-            console.log(`❌ User rejected in Firebase: ${uid}`);
+            console.log(`✅ User rejected PERMANENTLY in Firebase: ${uid}`);
           } catch (error) {
             console.error(`❌ Failed to save rejection to Firebase:`, error);
           }
         });
       }
       
-      return { users, user };
+      return { users: updatedUsers, user: updatedUser };
     });
+  },
+  refreshUserFromFirebase: async (uid) => {
+    try {
+      const { getUserProfile } = await import("@/lib/firestore");
+      const updatedProfile = await getUserProfile(uid);
+      if (updatedProfile) {
+        set((state) => {
+          const updatedUsers = state.users.map((item) =>
+            item.uid === uid ? { ...updatedProfile } : item
+          );
+          console.log(`🔄 Refreshed user ${uid} from Firebase:`, { verificationStatus: updatedProfile.verificationStatus });
+          return { users: updatedUsers };
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Error refreshing user from Firebase:`, error);
+    }
   },
   setHydrated: (hydrated) => set({ hydrated }),
   logout: () => {
