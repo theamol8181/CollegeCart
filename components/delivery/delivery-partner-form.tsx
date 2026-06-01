@@ -94,18 +94,21 @@ export function DeliveryPartnerForm() {
     setMessage("");
 
     try {
-      // Import Firestore functions
-      const { uploadIdCardImage } = await import("@/lib/firestore");
-      const { saveUserProfile } = await import("@/lib/firestore");
-      const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
+      // Import ImageKit upload function
+      const { uploadToImageKit } = await import("@/lib/imagekit");
+      const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
       const { db } = await import("@/lib/firebase");
 
-      // Upload all documents to Firebase Storage
+      console.log("📤 Uploading delivery partner documents to ImageKit...");
+      
+      // Upload all documents to ImageKit
       const [idCardFrontUrl, idCardBackUrl, profilePhotoUrl] = await Promise.all([
-        uploadIdCardImage(user.uid, files.idCardFront),
-        uploadIdCardImage(user.uid, files.idCardBack),
-        uploadIdCardImage(user.uid, files.profilePhoto)
+        uploadToImageKit(files.idCardFront, "/collegecart/delivery-partners/id-front"),
+        uploadToImageKit(files.idCardBack, "/collegecart/delivery-partners/id-back"),
+        uploadToImageKit(files.profilePhoto, "/collegecart/delivery-partners/profiles")
       ]);
+
+      console.log("✅ All documents uploaded to ImageKit successfully");
 
       const applicationId = `dp_${user.uid}_${Date.now()}`;
       const application: DeliveryPartnerApplication = {
@@ -139,6 +142,7 @@ export function DeliveryPartnerForm() {
 
       // Save to Firestore
       if (db) {
+        console.log("💾 Saving application to Firestore...");
         await setDoc(doc(db, "delivery-applications", applicationId), application, { merge: true });
         console.log(`✅ Delivery partner application saved to Firestore: ${applicationId}`);
       }
@@ -150,11 +154,11 @@ export function DeliveryPartnerForm() {
         localStorage.setItem("delivery-applications", JSON.stringify(applications));
       }
 
-      setMessage("Application submitted successfully!");
+      setMessage("✅ Application submitted successfully! Redirecting...");
       setTimeout(() => router.push("/delivery-partner/status"), 1500);
     } catch (error) {
-      console.error("Error submitting application:", error);
-      setMessage(`Error: ${error instanceof Error ? error.message : "Failed to submit application"}`);
+      console.error("❌ Error submitting application:", error);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : "Failed to submit application"}`);
     } finally {
       setLoading(false);
     }
