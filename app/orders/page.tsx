@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/components/providers/auth-provider";
+import { useAuthStore } from "@/stores/auth-store";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -8,7 +8,7 @@ import { db } from "@/lib/firebase";
 import type { Order } from "@/lib/types";
 
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "pending" | "completed">(
