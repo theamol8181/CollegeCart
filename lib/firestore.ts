@@ -313,6 +313,42 @@ export async function banUser(userId: string) {
   });
 }
 
+export function listenToCurrentUserProfile(userId: string, onChange: (user: UserProfile | null) => void) {
+  if (!db) {
+    console.error("❌ Firebase Firestore not initialized for user profile");
+    return () => undefined;
+  }
+
+  try {
+    const userDocRef = doc(db, "users", userId);
+    
+    return onSnapshot(
+      userDocRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const user = {
+            ...data,
+            uid: snapshot.id,
+            createdAt: data.createdAt || new Date().toISOString()
+          } as UserProfile;
+          console.log(`🔊 User profile updated: ${userId}`, user.verificationStatus);
+          onChange(user);
+        } else {
+          console.warn(`⚠️ User profile not found: ${userId}`);
+          onChange(null);
+        }
+      },
+      (error) => {
+        console.error(`❌ User profile sync failed:`, error.code, error.message);
+      }
+    );
+  } catch (error) {
+    console.error("❌ Error setting up user profile listener:", error);
+    return () => undefined;
+  }
+}
+
 export function listenToUserProducts(userId: string, onChange: (products: Product[]) => void) {
   if (!db) return () => undefined;
   const userProductsQuery = query(collection(db, "products"), where("sellerId", "==", userId));

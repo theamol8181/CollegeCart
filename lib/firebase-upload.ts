@@ -1,5 +1,5 @@
 import { storage, auth } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, UploadTaskSnapshot } from "firebase/storage";
 
 export type UploadProgressCallback = (progress: number) => void;
 
@@ -52,7 +52,7 @@ export async function uploadToFirebaseStorage(
       setTimeout(() => reject(new Error("Upload timeout - took more than 2 minutes")), 2 * 60 * 1000)
     );
     
-    const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
+    const snapshot = (await Promise.race([uploadPromise, timeoutPromise])) as UploadTaskSnapshot;
     
     console.log("✅ File bytes uploaded successfully");
     onProgress?.(70);
@@ -64,12 +64,12 @@ export async function uploadToFirebaseStorage(
       setTimeout(() => reject(new Error("URL generation timeout")), 30000)
     );
     
-    const downloadUrl = await Promise.race([urlPromise, urlTimeoutPromise]);
+    const downloadUrl = (await Promise.race([urlPromise, urlTimeoutPromise])) as string;
     
     console.log("✅ Download URL retrieved:", downloadUrl.substring(0, 50) + "...");
     onProgress?.(100);
 
-    return downloadUrl as string;
+    return downloadUrl;
   } catch (error) {
     console.error("❌ Firebase Storage upload failed:", error);
     
