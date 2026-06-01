@@ -26,7 +26,7 @@ export async function GET() {
   try {
     const token = randomUUID();
     const expire = Math.floor(Date.now() / 1000) + 2400;
-    const signature = createHmac("sha1", privateKey).update(token + expire).digest("hex");
+    const signature = createHmac("sha1", privateKey!).update(token + expire).digest("hex");
 
     console.log("✅ ImageKit auth generated successfully");
     return NextResponse.json({
