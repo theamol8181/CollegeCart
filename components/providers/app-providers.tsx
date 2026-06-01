@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { listenToProducts, listenToUsers, saveUserProfile } from "@/lib/firestore";
+import { getUserProfile, listenToProducts, listenToUsers, saveUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -47,9 +47,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }
 
       const email = firebaseUser.email ?? "";
-      const existing = useAuthStore
+      const savedProfile = await getUserProfile(firebaseUser.uid);
+      const localProfile = useAuthStore
         .getState()
         .users.find((item) => item.uid === firebaseUser.uid || item.email.toLowerCase() === email.toLowerCase());
+      const existing = savedProfile ?? localProfile;
       const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
       const profile = {
         uid: firebaseUser.uid,
@@ -65,7 +67,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         role: isAdmin ? ("admin" as const) : ("student" as const),
         verificationStatus: isAdmin ? ("approved" as const) : existing?.verificationStatus ?? ("needs_id" as const),
         online: true,
-        savedProductIds: existing?.savedProductIds ?? []
+        savedProductIds: existing?.savedProductIds ?? [],
+        createdAt: existing?.createdAt
       };
       setUser(profile);
       await saveUserProfile(profile);

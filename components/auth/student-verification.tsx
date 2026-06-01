@@ -10,15 +10,6 @@ import { useAuthStore } from "@/stores/auth-store";
 import { uploadIdCardImage } from "@/lib/firestore";
 import { uploadToImageKit } from "@/lib/imagekit";
 
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
 export function StudentVerification() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
@@ -60,7 +51,9 @@ export function StudentVerification() {
         idCardUrl = await uploadToImageKit(idCard, "/collegecart/idcards");
       }
 
-      const avatarUrl = avatar ? await readFileAsDataUrl(avatar) : (currentUser.avatarUrl || demoUser.avatarUrl);
+      const avatarUrl = avatar
+        ? await uploadToImageKit(avatar, "/collegecart/avatars")
+        : currentUser.avatarUrl || demoUser.avatarUrl;
       
       await submitIdCard(idCardUrl, {
         avatarUrl,

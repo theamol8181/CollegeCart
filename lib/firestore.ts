@@ -110,6 +110,7 @@ export async function saveUserProfile(profile: UserProfile) {
   if (!db) return;
   const cleanedProfile = withoutUndefined(profile as unknown as Record<string, unknown>);
   await setDoc(doc(db, "users", profile.uid), {
+    createdAt: cleanedProfile.createdAt ?? serverTimestamp(),
     ...cleanedProfile,
     updatedAt: serverTimestamp()
   }, { merge: true });
