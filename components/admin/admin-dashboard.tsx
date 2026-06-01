@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Ban, CheckCircle2, Clock3, Flag, IdCard, Shield, Trash2, UsersRound, XCircle, Truck } from "lucide-react";
+import { Ban, CheckCircle2, Clock3, Flag, IdCard, Shield, Trash2, UsersRound, XCircle, Truck, Plus } from "lucide-react";
 import { demoUser } from "@/lib/data";
 import { deleteProduct, updateProductStatus } from "@/lib/firestore";
 import { formatPrice } from "@/lib/utils";
@@ -10,9 +10,10 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 import { AdminDeliveryRequests } from "./admin-delivery-requests";
 import { AdminOrders } from "./admin-orders";
+import { ListingForm } from "@/components/product/listing-form";
 
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery" | "orders">("marketplace");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery" | "orders" | "upload">("marketplace");
   const { products, approveProduct, rejectProduct, deleteProductLocal } = useMarketplaceStore();
   const { users, approveUser, rejectUser, refreshUserFromFirebase } = useAuthStore();
   const reviewProducts = products.filter((product) => Boolean(product.status));
@@ -124,6 +125,17 @@ export function AdminDashboard() {
           }`}
         >
           Marketplace
+        </button>
+        <button
+          onClick={() => setActiveTab("upload")}
+          className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-black transition ${
+            activeTab === "upload"
+              ? "border-b-2 border-ocean text-ocean"
+              : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          <Plus className="size-4" />
+          Upload Product
         </button>
         <button
           onClick={() => setActiveTab("users")}
@@ -283,6 +295,18 @@ export function AdminDashboard() {
               <p className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-300">No student users yet.</p>
             )}
           </div>
+        </section>
+      )}
+
+      {/* Upload Product Tab */}
+      {activeTab === "upload" && (
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.08]">
+          <div className="mb-6">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-ocean">Admin only</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-ink dark:text-white">Upload Product Manually</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Use this form to manually create product listings for the marketplace.</p>
+          </div>
+          <ListingForm />
         </section>
       )}
 
