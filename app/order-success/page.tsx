@@ -72,7 +72,7 @@ export default function OrderSuccessPage() {
               Order Successfully Placed!
             </h1>
             <p className="text-gray-600">
-              Thank you for your order. We'll notify you about delivery updates.
+              Thank you for your order. We&apos;ll notify you about delivery updates.
             </p>
           </div>
 
