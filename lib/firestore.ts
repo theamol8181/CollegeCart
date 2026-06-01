@@ -14,8 +14,7 @@ import {
   updateDoc,
   where
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import type { Product, UserProfile } from "@/lib/types";
 
 function withoutUndefined<T extends Record<string, unknown>>(value: T) {
@@ -116,20 +115,35 @@ export async function saveUserProfile(profile: UserProfile) {
 }
 
 export async function uploadIdCardImage(userId: string, file: File): Promise<string> {
-  if (!storage) {
-    throw new Error("Firebase Storage not initialized");
-  }
+  const IMAGEKIT_PUBLIC_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "public_Urhn2Yob/+pVBCEQ4Ik+kXefqCI=";
 
   try {
     const fileExt = file.name.split(".").pop() || "jpg";
     const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
-    const storageRef = ref(storage, fileName);
     
-    await uploadBytes(storageRef, file);
-    const downloadUrl = await getDownloadURL(storageRef);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+    formData.append("fileName", fileName);
+    formData.append("folder", "/collegecart/idcards");
+    formData.append("useUniqueFileName", "false");
     
-    console.log(`✅ ID card uploaded to Storage: ${fileName}`);
-    return downloadUrl;
+    console.log(`📤 Uploading ID card to ImageKit: ${fileName}`);
+    
+    const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("ImageKit ID card upload error:", errorData);
+      throw new Error(`ID card upload failed: ${errorData.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ ID card uploaded to ImageKit: ${fileName}`);
+    return data.url as string;
   } catch (error) {
     console.error("❌ Error uploading ID card:", error);
     throw error;
