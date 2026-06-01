@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { categories } from "@/lib/data";
 import { createProduct } from "@/lib/firestore";
-import { uploadToImageKit } from "@/lib/imagekit";
+import { uploadToFirebaseStorage } from "@/lib/firebase-upload";
 import type { ProductCategory, ProductCondition } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -107,7 +107,7 @@ export function ListingForm() {
       const imageUrls = await Promise.all(
         files.map(async (file, index) => {
           try {
-            return await uploadToImageKit(file, "/collegecart/listings", (progress) => {
+            return await uploadToFirebaseStorage(file, "collegecart/listings", (progress) => {
               setUploadProgress((prev) => ({
                 ...prev,
                 [index]: progress
