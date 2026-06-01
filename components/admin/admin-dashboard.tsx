@@ -9,9 +9,10 @@ import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 import { AdminDeliveryRequests } from "./admin-delivery-requests";
+import { AdminOrders } from "./admin-orders";
 
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery">("marketplace");
+  const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery" | "orders">("marketplace");
   const { products, approveProduct, rejectProduct, deleteProductLocal } = useMarketplaceStore();
   const { users, approveUser, rejectUser } = useAuthStore();
   const reviewProducts = products.filter((product) => Boolean(product.status));
@@ -124,6 +125,16 @@ export function AdminDashboard() {
         >
           <Truck className="size-4" />
           Delivery Partners
+        </button>
+        <button
+          onClick={() => setActiveTab("orders")}
+          className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-black transition ${
+            activeTab === "orders"
+              ? "border-b-2 border-ocean text-ocean"
+              : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          📦 Orders
         </button>
       </div>
 
@@ -256,4 +267,16 @@ export function AdminDashboard() {
       )}
 
       {/* Delivery Partners Tab */}
-      {activeTab === "delivery" && <AdminDeliveryRequests />}
+      {activeTab === "delivery" && (
+        <section className="overflow-hidden rounded-[2rem] bg-white shadow-premium ring-1 ring-slate-200 dark:bg-white/[0.08] dark:ring-white/10">
+          <AdminDeliveryRequests />
+        </section>
+      )}
+
+      {/* Orders Tab */}
+      {activeTab === "orders" && (
+        <AdminOrders />
+      )}
+    </div>
+  );
+}
