@@ -249,6 +249,41 @@ export async function updateProductStatus(productId: string, status: NonNullable
   }
 }
 
+export function listenToCurrentUserProfile(uid: string, onChange: (user: UserProfile | null) => void) {
+  if (!db) {
+    console.error("❌ Firebase Firestore not initialized for current user");
+    return () => undefined;
+  }
+
+  try {
+    const userRef = doc(db, "users", uid);
+    return onSnapshot(
+      userRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const user = {
+            ...data,
+            uid: docSnap.id,
+            createdAt: data.createdAt || new Date().toISOString()
+          } as UserProfile;
+          console.log(`👤 Current user profile updated:`, { uid, verificationStatus: user.verificationStatus });
+          onChange(user);
+        } else {
+          console.warn(`⚠️ Current user profile not found: ${uid}`);
+          onChange(null);
+        }
+      },
+      (error) => {
+        console.error(`❌ Error listening to current user profile:`, error);
+      }
+    );
+  } catch (error) {
+    console.error("❌ Error setting up current user listener:", error);
+    return () => undefined;
+  }
+}
+
 export function listenToUsers(onChange: (users: UserProfile[]) => void) {
   if (!db) {
     console.error("❌ Firebase Firestore not initialized for users");

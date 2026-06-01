@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { auth } from "@/lib/firebase";
-import { getUserProfile, listenToProducts, listenToUsers, saveUserProfile } from "@/lib/firestore";
+import { getUserProfile, listenToProducts, listenToUsers, saveUserProfile, listenToCurrentUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { hydrateAuth, setUser, setHydrated, setUsers } = useAuthStore();
+  const { hydrateAuth, setUser, setHydrated, setUsers, user: currentUser } = useAuthStore();
   const { theme } = useThemeStore();
   const hydrateProducts = useMarketplaceStore((state) => state.hydrateProducts);
   const setProducts = useMarketplaceStore((state) => state.setProducts);
@@ -34,6 +34,18 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return listenToUsers(setUsers);
   }, [setUsers]);
+
+  // Listen to current user profile changes in real-time (for admin approvals)
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    console.log(`🔊 Setting up real-time listener for user: ${currentUser.uid}`);
+    return listenToCurrentUserProfile(currentUser.uid, (updatedUser) => {
+      if (updatedUser && updatedUser.verificationStatus !== currentUser.verificationStatus) {
+        console.log(`🔄 User verification status changed: ${currentUser.verificationStatus} → ${updatedUser.verificationStatus}`);
+        setUser(updatedUser);
+      }
+    });
+  }, [currentUser?.uid, currentUser?.verificationStatus, setUser]);
 
   useEffect(() => {
     hydrateAuth();
