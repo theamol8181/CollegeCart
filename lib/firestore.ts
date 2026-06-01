@@ -110,7 +110,6 @@ export async function saveUserProfile(profile: UserProfile) {
   if (!db) return;
   const cleanedProfile = withoutUndefined(profile as unknown as Record<string, unknown>);
   await setDoc(doc(db, "users", profile.uid), {
-    createdAt: cleanedProfile.createdAt ?? serverTimestamp(),
     ...cleanedProfile,
     updatedAt: serverTimestamp()
   }, { merge: true });
@@ -123,7 +122,7 @@ export async function uploadIdCardImage(userId: string, file: File): Promise<str
 
   try {
     const fileExt = file.name.split(".").pop() || "jpg";
-    const fileName = `idcards/${userId}/${Date.now()}.${fileExt}`;
+    const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
     const storageRef = ref(storage, fileName);
     
     await uploadBytes(storageRef, file);
@@ -246,41 +245,6 @@ export async function updateProductStatus(productId: string, status: NonNullable
       console.error("❌ Make sure admin has 'admin' role in users collection");
     }
     throw error;
-  }
-}
-
-export function listenToCurrentUserProfile(uid: string, onChange: (user: UserProfile | null) => void) {
-  if (!db) {
-    console.error("❌ Firebase Firestore not initialized for current user");
-    return () => undefined;
-  }
-
-  try {
-    const userRef = doc(db, "users", uid);
-    return onSnapshot(
-      userRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const user = {
-            ...data,
-            uid: docSnap.id,
-            createdAt: data.createdAt || new Date().toISOString()
-          } as UserProfile;
-          console.log(`👤 Current user profile updated:`, { uid, verificationStatus: user.verificationStatus });
-          onChange(user);
-        } else {
-          console.warn(`⚠️ Current user profile not found: ${uid}`);
-          onChange(null);
-        }
-      },
-      (error) => {
-        console.error(`❌ Error listening to current user profile:`, error);
-      }
-    );
-  } catch (error) {
-    console.error("❌ Error setting up current user listener:", error);
-    return () => undefined;
   }
 }
 

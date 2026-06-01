@@ -1,4 +1,4 @@
-import { storage } from "@/lib/firebase";
+import { storage, auth } from "@/lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export type UploadProgressCallback = (progress: number) => void;
@@ -8,42 +8,93 @@ export async function uploadToFirebaseStorage(
   folder = "collegecart/listings",
   onProgress?: UploadProgressCallback
 ): Promise<string> {
+  console.log("🔐 Firebase upload check...");
+  
   if (!storage) {
+    console.error("❌ Firebase Storage not initialized");
     throw new Error("Firebase Storage is not initialized");
   }
 
+  // Check if user is authenticated (important for Firebase rules)
+  const currentUser = auth?.currentUser;
+  if (!currentUser) {
+    console.warn("⚠️ User not authenticated - upload may fail due to security rules");
+  }
+
   try {
-    console.log("📤 Uploading to Firebase Storage:", folder);
+    console.log("📤 Starting Firebase Storage upload");
+    console.log("File:", file.name, "Size:", file.size, "Type:", file.type);
     onProgress?.(10);
 
-    // Create a unique filename
+    // Validate file size (Firebase free tier limit)
+    if (file.size > 100 * 1024 * 1024) { // 100MB limit
+      throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB (max: 100MB)`);
+    }
+
+    // Create a unique filename with better formatting
     const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(7);
-    const fileName = `${timestamp}-${randomId}-${file.name}`;
+    const randomId = Math.random().toString(36).substring(2, 8);
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const fileName = `${timestamp}-${randomId}-${sanitizedName}`;
     
+    console.log("📝 Storage path:", `${folder}/${fileName}`);
+    onProgress?.(20);
+
     // Create storage reference
     const storageRef = ref(storage, `${folder}/${fileName}`);
     
-    console.log("📝 Storage reference created:", `${folder}/${fileName}`);
-    onProgress?.(30);
+    console.log("⏳ Uploading bytes to Firebase Storage...");
+    onProgress?.(40);
 
-    // Upload file
-    const snapshot = await uploadBytes(storageRef, file);
-    console.log("✅ File uploaded to Firebase Storage");
+    // Upload file with timeout
+    const uploadPromise = uploadBytes(storageRef, file);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Upload timeout - took more than 2 minutes")), 2 * 60 * 1000)
+    );
+    
+    const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
+    
+    console.log("✅ File bytes uploaded successfully");
     onProgress?.(70);
 
-    // Get download URL
-    const downloadUrl = await getDownloadURL(snapshot.ref);
-    console.log("✅ Download URL obtained:", downloadUrl);
+    // Get download URL with timeout
+    console.log("📥 Retrieving download URL...");
+    const urlPromise = getDownloadURL(snapshot.ref);
+    const urlTimeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("URL generation timeout")), 30000)
+    );
+    
+    const downloadUrl = await Promise.race([urlPromise, urlTimeoutPromise]);
+    
+    console.log("✅ Download URL retrieved:", downloadUrl.substring(0, 50) + "...");
     onProgress?.(100);
 
-    return downloadUrl;
+    return downloadUrl as string;
   } catch (error) {
     console.error("❌ Firebase Storage upload failed:", error);
-    throw new Error(
-      `Failed to upload to Firebase Storage: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
+    
+    // Better error messages
+    let errorMessage = "Failed to upload to Firebase Storage";
+    
+    if (error instanceof Error) {
+      if (error.message.includes("permission")) {
+        errorMessage = "Permission denied - check Firebase security rules";
+      } else if (error.message.includes("timeout")) {
+        errorMessage = "Upload timeout - file may be too large or network too slow";
+      } else if (error.message.includes("too large")) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    console.error("Error details:", {
+      message: errorMessage,
+      code: (error as any).code,
+      originalError: error
+    });
+    
+    throw new Error(errorMessage);
   }
 }
+

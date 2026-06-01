@@ -98,6 +98,7 @@ export function ListingForm() {
       if (!files.length) {
         setImageStatus("error");
         setFormMessage("Please upload at least one real product image.", "error");
+        setLoading(false);
         return;
       }
 
@@ -126,7 +127,7 @@ export function ListingForm() {
 
       setImageStatus("uploaded");
       setOverallProgress(100);
-      setFormMessage("All images uploaded successfully!", "success");
+      setFormMessage("All images uploaded successfully!", "info");
 
       const now = new Date().toISOString();
       const product = {
