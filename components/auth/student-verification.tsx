@@ -14,6 +14,7 @@ export function StudentVerification() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const submitIdCard = useAuthStore((state) => state.submitIdCard);
+  const setUser = useAuthStore((state) => state.setUser);
   const [collegeName, setCollegeName] = useState(user?.collegeName ?? "");
   const [year, setYear] = useState(user?.year ?? years[0]);
   const [usn, setUsn] = useState(user?.usn ?? "");
@@ -23,6 +24,28 @@ export function StudentVerification() {
   const [avatar, setAvatar] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Check every 3 seconds if user is approved
+  useEffect(() => {
+    if (!user?.uid || user?.verificationStatus === "approved") return;
+    
+    console.log(`🔄 Setting up approval checker for user: ${user.uid}`);
+    const interval = setInterval(async () => {
+      try {
+        const { getUserProfile } = await import("@/lib/firestore");
+        const latestProfile = await getUserProfile(user.uid);
+        if (latestProfile && latestProfile.verificationStatus === "approved") {
+          console.log(`✅ User approved detected! Redirecting to dashboard...`);
+          setUser(latestProfile);
+          router.replace("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking approval status:", error);
+      }
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [user?.uid, user?.verificationStatus, router, setUser]);
 
   useEffect(() => {
     if (user?.verificationStatus === "approved") router.replace("/dashboard");
@@ -165,6 +188,27 @@ export function StudentVerification() {
             {loading ? <Loader2 className="size-5 animate-spin" /> : <IdCard className="size-5" />}
             Submit for approval
           </button>
+          {user.verificationStatus === "pending" && (
+            <button type="button" onClick={async () => {
+              try {
+                const { getUserProfile } = await import("@/lib/firestore");
+                const latest = await getUserProfile(user.uid);
+                if (latest) {
+                  setUser(latest);
+                  if (latest.verificationStatus === "approved") {
+                    setMessage("✅ Approval detected! Redirecting...");
+                    setTimeout(() => router.replace("/dashboard"), 500);
+                  } else {
+                    setMessage("⏳ Still pending. Check again later.");
+                  }
+                }
+              } catch (error) {
+                setMessage("❌ Error checking status");
+              }
+            }} className="col-span-full rounded-2xl border-2 border-ocean bg-transparent py-3 text-sm font-black text-ocean hover:bg-ocean/5">
+              🔄 Check Status
+            </button>
+          )}
         </form>
       )}
     </div>

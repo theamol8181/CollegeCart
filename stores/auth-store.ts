@@ -101,7 +101,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, users });
     console.log(`User ID card submitted to Firebase: ${user.uid}`);
   },
-  approveUser: (uid) =>
+  approveUser: (uid) => {
     set((state) => {
       const users = state.users.map((item) =>
         item.uid === uid ? { ...item, verificationStatus: "approved" as const } : item
@@ -110,18 +110,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       storeUsers(users);
       if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
       
-      // Also save to Firebase
+      // Save to Firebase IMMEDIATELY and wait for it
       const approvedUser = users.find(u => u.uid === uid);
       if (approvedUser) {
-        import("@/lib/firestore").then(({ saveUserProfile }) => {
-          saveUserProfile(approvedUser);
-          console.log(`✅ User approved in Firebase: ${uid}`);
+        import("@/lib/firestore").then(async ({ saveUserProfile }) => {
+          try {
+            await saveUserProfile(approvedUser);
+            console.log(`✅ User approved in Firebase: ${uid}`);
+          } catch (error) {
+            console.error(`❌ Failed to save approval to Firebase:`, error);
+          }
         });
       }
       
       return { users, user };
-    }),
-  rejectUser: (uid) =>
+    });
+  },
+  rejectUser: (uid) => {
     set((state) => {
       const users = state.users.map((item) =>
         item.uid === uid ? { ...item, verificationStatus: "rejected" as const } : item
@@ -130,17 +135,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       storeUsers(users);
       if (typeof window !== "undefined" && user) window.localStorage.setItem("collegecart-user", JSON.stringify(user));
       
-      // Also save to Firebase
+      // Save to Firebase IMMEDIATELY and wait for it
       const rejectedUser = users.find(u => u.uid === uid);
       if (rejectedUser) {
-        import("@/lib/firestore").then(({ saveUserProfile }) => {
-          saveUserProfile(rejectedUser);
-          console.log(`❌ User rejected in Firebase: ${uid}`);
+        import("@/lib/firestore").then(async ({ saveUserProfile }) => {
+          try {
+            await saveUserProfile(rejectedUser);
+            console.log(`❌ User rejected in Firebase: ${uid}`);
+          } catch (error) {
+            console.error(`❌ Failed to save rejection to Firebase:`, error);
+          }
         });
       }
       
       return { users, user };
-    }),
+    });
+  },
   setHydrated: (hydrated) => set({ hydrated }),
   logout: () => {
     if (typeof window !== "undefined") window.localStorage.removeItem("collegecart-user");
