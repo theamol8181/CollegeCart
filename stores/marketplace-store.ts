@@ -53,6 +53,7 @@ type MarketplaceState = {
   addProduct: (product: Product) => void;
   approveProduct: (productId: string) => void;
   rejectProduct: (productId: string) => void;
+  markProductSold: (productId: string) => void;
   deleteProductLocal: (productId: string) => void;
   removeProduct: (productId: string) => void;
   setQuery: (query: string) => void;
@@ -118,6 +119,14 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     set((state) => {
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "rejected" as const } : product
+      );
+      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
+      return { products: updated };
+    }),
+  markProductSold: (productId) =>
+    set((state) => {
+      const updated = state.products.map((product) =>
+        product.id === productId ? { ...product, status: "sold" as const } : product
       );
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };

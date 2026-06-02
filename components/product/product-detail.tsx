@@ -1,21 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { Flag, Heart, MapPin, MessageCircle, Phone, Share2, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, ShieldCheck } from "lucide-react";
+import { COLLEGECART_WHATSAPP_DISPLAY, COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
-import { useMarketplaceStore } from "@/stores/marketplace-store";
 import { ProductGrid } from "@/components/product/product-grid";
 
 export function ProductDetail({ product }: { product: Product }) {
-  const { savedIds, toggleSaved } = useMarketplaceStore();
-  const saved = savedIds.includes(product.id);
-
   function openWhatsApp() {
-    const phoneNumber = product.whatsappNumber.replace(/\D/g, "");
     const message = `Hello CollegeCart,
 
 I am interested in this product.
@@ -27,7 +21,7 @@ Please share availability, payment details and delivery information.
 
 Thank you.`;
     
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${COLLEGECART_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   }
 
@@ -53,9 +47,6 @@ Thank you.`;
               <p className="text-sm font-black text-ocean">{product.category}</p>
               <h1 className="mt-2 text-3xl font-black tracking-tight text-ink dark:text-white">{product.name}</h1>
             </div>
-            <button onClick={() => toggleSaved(product.id)} className="grid size-12 place-items-center rounded-full bg-white text-coral ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
-              <Heart className={`size-6 ${saved ? "fill-current" : ""}`} />
-            </button>
           </div>
 
           <p className="mt-6 text-4xl font-black tracking-tight text-ink dark:text-white">{formatPrice(product.price)}</p>
@@ -82,26 +73,14 @@ Thank you.`;
             </p>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6">
             <button
               onClick={openWhatsApp}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow hover:bg-emerald-300 transition"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow transition hover:bg-emerald-300"
             >
               <Phone className="size-5" />
-              Buy Now
+              Buy Now - {COLLEGECART_WHATSAPP_DISPLAY}
             </button>
-            <Link href="/messages" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-ocean px-4 py-4 text-sm font-black text-white shadow-glow">
-              <MessageCircle className="size-5" />
-              Chat Seller
-            </Link>
-            <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-4 text-sm font-black text-coral ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10">
-              <Flag className="size-5" />
-              Report
-            </button>
-            <Link href={`https://wa.me/${product.whatsappNumber.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-sm font-black text-white shadow-glow hover:bg-blue-700 transition">
-              <MessageCircle className="size-5" />
-              Direct WhatsApp
-            </Link>
           </div>
         </aside>
       </section>

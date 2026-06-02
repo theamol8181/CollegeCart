@@ -5,10 +5,11 @@ import { BadgeCheck, Camera, GraduationCap, Heart, IdCard, ListChecks, LogOut, P
 import { useState } from "react";
 import { bangaloreColleges, years } from "@/lib/bangalore-colleges";
 import { demoUser } from "@/lib/data";
+import { fileToCompressedDataUrl } from "@/lib/image-fallback";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { deleteProduct, signOutUser } from "@/lib/firestore";
+import { deleteProduct, saveUserProfile, signOutUser } from "@/lib/firestore";
 
 const tabs = [
   { label: "My Listings", icon: ListChecks },
@@ -16,15 +17,6 @@ const tabs = [
   { label: "Purchase History", icon: PackageCheck },
   { label: "Account Settings", icon: Settings }
 ];
-
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export function ProfileShell() {
   const { user, logout } = useAuthStore();
@@ -204,11 +196,30 @@ function EditProfileModal({
   const [year, setYear] = useState(user.year ?? years[0]);
   const [department, setDepartment] = useState(user.department ?? "");
   const [avatar, setAvatar] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   async function save() {
-    const avatarUrl = avatar ? await readFileAsDataUrl(avatar) : user.avatarUrl;
-    updateUser({ fullName, collegeName, phoneNumber, usn, year, department, avatarUrl });
-    onSave();
+    setSaving(true);
+    setMessage("");
+
+    try {
+      const avatarUrl = avatar
+        ? await fileToCompressedDataUrl(avatar, { maxDataUrlLength: 120_000, maxSide: 512 })
+        : user.avatarUrl;
+
+      const updates = { fullName, collegeName, phoneNumber, usn, year, department, avatarUrl };
+      const updatedUser = { ...user, ...updates, updatedAt: new Date().toISOString() };
+
+      updateUser(updates);
+      await saveUserProfile(updatedUser);
+      onSave();
+    } catch (error) {
+      console.error("Profile save failed:", error);
+      setMessage(error instanceof Error ? error.message : "Could not save profile changes.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -249,9 +260,10 @@ function EditProfileModal({
             <input type="file" accept="image/*" className="hidden" onChange={(event) => setAvatar(event.target.files?.[0] ?? null)} />
           </label>
         </div>
-        <button onClick={save} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ocean py-3 text-sm font-black text-white">
+        {message ? <p className="mt-4 rounded-xl bg-coral/10 p-3 text-sm font-bold text-coral">{message}</p> : null}
+        <button disabled={saving} onClick={save} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ocean py-3 text-sm font-black text-white disabled:opacity-60">
           <Save className="size-4" />
-          Save changes
+          {saving ? "Saving..." : "Save changes"}
         </button>
       </div>
     </div>

@@ -17,7 +17,7 @@ export function ProductPageClient({ id, fallbackProduct }: { id: string; fallbac
       <EmptyState
         icon="SearchX"
         title="Listing nahi mili"
-        body="Ye product remove ho chuka hai ya admin review me hai."
+        body="Ye product remove ho chuka hai ya out of stock hai."
         action={<Link href="/" className="rounded-full bg-ocean px-5 py-3 text-sm font-black text-white">Back to marketplace</Link>}
       />
     );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Ban, CheckCircle2, Clock3, Flag, IdCard, Shield, Trash2, UsersRound, XCircle, Truck, Plus } from "lucide-react";
+import { Ban, CheckCircle2, Clock3, IdCard, Shield, Trash2, UsersRound, XCircle, Truck, Plus } from "lucide-react";
 import { demoUser } from "@/lib/data";
 import { deleteProduct, updateProductStatus } from "@/lib/firestore";
 import { formatPrice } from "@/lib/utils";
@@ -14,18 +14,17 @@ import { ListingForm } from "@/components/product/listing-form";
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"marketplace" | "users" | "delivery" | "orders" | "upload">("marketplace");
-  const { products, approveProduct, rejectProduct, deleteProductLocal } = useMarketplaceStore();
+  const { products, approveProduct, rejectProduct, markProductSold, deleteProductLocal } = useMarketplaceStore();
   const { users, approveUser, rejectUser, refreshUserFromFirebase } = useAuthStore();
   const reviewProducts = products.filter((product) => Boolean(product.status));
-  const pending = reviewProducts.filter((product) => product.status === "pending");
-  const rejected = reviewProducts.filter((product) => product.status === "rejected");
+  const sold = reviewProducts.filter((product) => product.status === "sold");
   const studentUsers = users.filter((user) => user.role === "student");
   const pendingUsers = studentUsers.filter((user) => user.verificationStatus === "pending");
   const stats = [
     { label: "Total Users", value: String(studentUsers.length), icon: UsersRound, color: "bg-ocean/10 text-ocean" },
     { label: "User Listings", value: String(reviewProducts.length), icon: Shield, color: "bg-mint/12 text-emerald-600" },
     { label: "Pending Accounts", value: String(pendingUsers.length), icon: Clock3, color: "bg-sun/20 text-amber-700" },
-    { label: "Reported Listings", value: String(rejected.length), icon: Flag, color: "bg-coral/10 text-coral" }
+    { label: "Out of Stock", value: String(sold.length), icon: Ban, color: "bg-coral/10 text-coral" }
   ];
 
   async function approveListing(productId: string) {
@@ -82,6 +81,23 @@ export function AdminDashboard() {
     }
   }
 
+  async function markListingOutOfStock(productId: string) {
+    console.log(`Marking product out of stock: ${productId}`);
+
+    if (!productId.startsWith("local-")) {
+      try {
+        await updateProductStatus(productId, "sold");
+        if (typeof window !== "undefined") window.localStorage.removeItem("collegecart-products");
+        markProductSold(productId);
+      } catch (error) {
+        console.error("Failed to mark product out of stock:", error);
+        alert("Error marking product out of stock: " + (error instanceof Error ? error.message : String(error)));
+      }
+    } else {
+      markProductSold(productId);
+    }
+  }
+
   async function approveUserWithRefresh(uid: string) {
     console.log(`✅ Approving user: ${uid}`);
     approveUser(uid);
@@ -103,8 +119,15 @@ export function AdminDashboard() {
   }
 
   async function removeListing(productId: string) {
-    deleteProductLocal(productId);
-    await deleteProduct(productId);
+    if (!confirm("Delete this product permanently?")) return;
+
+    try {
+      deleteProductLocal(productId);
+      if (!productId.startsWith("local-")) await deleteProduct(productId);
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      alert("Error deleting product: " + (error instanceof Error ? error.message : String(error)));
+    }
   }
 
   return (
@@ -193,41 +216,52 @@ export function AdminDashboard() {
           <h2 className="text-xl font-black text-ink dark:text-white">Live listing moderation</h2>
         </div>
         <div className="divide-y divide-slate-200 dark:divide-white/10">
-          {pending.length ? (
-            pending.map((product) => (
+          {reviewProducts.length ? (
+            reviewProducts.map((product) => (
               <div key={product.id} className="grid gap-4 p-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div className="flex items-center gap-3">
                   <Image src={product.images[0]} alt="" width={64} height={64} unoptimized={product.images[0].startsWith("data:")} className="size-16 rounded-2xl object-cover" />
                   <div>
                     <p className="font-black text-ink dark:text-white">{product.name}</p>
                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">{product.sellerName} - {formatPrice(product.price)}</p>
-                    <p className="mt-1 text-xs font-black uppercase text-amber-700 dark:text-sun">{product.status}</p>
+                    <p className={`mt-1 w-fit rounded-full px-2.5 py-1 text-xs font-black uppercase ${
+                      product.status === "sold"
+                        ? "bg-coral/10 text-coral"
+                        : product.status === "rejected"
+                          ? "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
+                          : "bg-mint/12 text-emerald-700 dark:text-mint"
+                    }`}>
+                      {product.status === "sold" ? "out of stock" : product.status ?? "approved"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <>
+                  {product.status === "sold" || product.status === "rejected" ? (
                     <button onClick={() => void approveListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-mint/12 px-4 py-2 text-sm font-black text-emerald-700 dark:text-mint">
                       <CheckCircle2 className="size-4" />
-                      Approve
+                      Mark available
                     </button>
+                  ) : (
+                    <button onClick={() => void markListingOutOfStock(product.id)} className="inline-flex items-center gap-2 rounded-full bg-sun/20 px-4 py-2 text-sm font-black text-amber-800 dark:text-sun">
+                      <Ban className="size-4" />
+                      Out of stock
+                    </button>
+                  )}
+                  {product.status !== "rejected" ? (
                     <button onClick={() => void rejectListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
                       <XCircle className="size-4" />
                       Reject
                     </button>
-                  </>
+                  ) : null}
                   <button onClick={() => void removeListing(product.id)} className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-4 py-2 text-sm font-black text-coral">
                     <Trash2 className="size-4" />
                     Delete
-                  </button>
-                  <button className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-black text-white dark:bg-white dark:text-ink">
-                    <Ban className="size-4" />
-                    Ban user
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <p className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-300">Product approval is disabled. New listings go live immediately.</p>
+            <p className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-300">No product listings yet.</p>
           )}
         </div>
       </section>

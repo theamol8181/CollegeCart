@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MessageCircle, Loader2 } from "lucide-react";
+import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import { createOrder } from "@/lib/orders";
 import type { Product } from "@/lib/types";
 import type { UserProfile } from "@/lib/types";
@@ -54,10 +55,9 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
       console.log("✅ Order created:", orderId);
 
       // Generate WhatsApp message
-      const whatsappNumber = seller.phoneNumber || product.whatsappNumber || "";
       const message = `Hi ${seller.fullName}, I'm interested in buying your "${product.name}" for ₹${product.price}. Can we discuss?`;
       const encodedMessage = encodeURIComponent(message);
-      const whatsappLink = `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodedMessage}`;
+      const whatsappLink = `https://wa.me/${COLLEGECART_WHATSAPP_NUMBER}?text=${encodedMessage}`;
 
       console.log("📱 Opening WhatsApp...");
       window.open(whatsappLink, "_blank");
