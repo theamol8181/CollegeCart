@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { Loader2, ShoppingBag } from "lucide-react";
 import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import { createOrder } from "@/lib/orders";
-import type { Product } from "@/lib/types";
-import type { UserProfile } from "@/lib/types";
+import type { Product, UserProfile } from "@/lib/types";
 
 interface BuyButtonProps {
   product: Product;
@@ -32,9 +31,6 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
     setError("");
 
     try {
-      console.log("🛍️ Creating order...");
-
-      // Create order in Firestore
       const orderId = await createOrder({
         productId: product.id,
         productName: product.name,
@@ -47,27 +43,21 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
         sellerId: product.sellerId,
         sellerName: product.sellerName,
         sellerPhone: product.contactNumber || "",
-        sellerWhatsApp: product.whatsappNumber || "",
+        sellerWhatsApp: COLLEGECART_WHATSAPP_NUMBER,
         status: "pending",
         buyerNotes: "",
       });
 
-      console.log("✅ Order created:", orderId);
+      const message = `Hi CollegeCart, I want to buy "${product.name}" for Rs ${product.price}. Product ID: ${product.id}. Order ID: ${orderId}.`;
+      const whatsappLink = `https://wa.me/${COLLEGECART_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 
-      // Generate WhatsApp message
-      const message = `Hi ${seller.fullName}, I'm interested in buying your "${product.name}" for ₹${product.price}. Can we discuss?`;
-      const encodedMessage = encodeURIComponent(message);
-      const whatsappLink = `https://wa.me/${COLLEGECART_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-
-      console.log("📱 Opening WhatsApp...");
       window.open(whatsappLink, "_blank");
 
-      // Redirect to orders page after a delay
       setTimeout(() => {
         window.location.href = "/orders";
       }, 1000);
     } catch (err) {
-      console.error("❌ Error creating order:", err);
+      console.error("Error creating order:", err);
       setError(err instanceof Error ? err.message : "Failed to create order");
     } finally {
       setLoading(false);
@@ -79,14 +69,10 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
       <button
         onClick={handleBuy}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 text-sm font-black text-white shadow-lg hover:bg-green-600 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-500 py-3 text-sm font-black text-white shadow-lg transition hover:bg-green-600 disabled:opacity-60"
       >
-        {loading ? (
-          <Loader2 className="size-5 animate-spin" />
-        ) : (
-          <MessageCircle className="size-5" />
-        )}
-        {loading ? "Creating Order..." : "Buy on WhatsApp"}
+        {loading ? <Loader2 className="size-5 animate-spin" /> : <ShoppingBag className="size-5" />}
+        {loading ? "Creating order..." : "Buy Now"}
       </button>
       {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-600">{error}</p>}
     </div>

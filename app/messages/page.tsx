@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { MessagingShell } from "@/components/chat/messaging-shell";
 
 export const metadata: Metadata = {
-  title: "Messages"
+  title: "Chats coming soon"
 };
 
 export default function MessagesPage() {

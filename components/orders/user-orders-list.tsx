@@ -103,16 +103,6 @@ export function UserOrdersList() {
               </div>
             )}
 
-            {order.status === "pending" && (
-              <a
-                href={`https://wa.me/${order.sellerWhatsApp.replace(/[^0-9]/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 block text-center rounded-lg bg-green-100 py-2 text-sm font-bold text-green-700 hover:bg-green-200 dark:bg-green-500/20 dark:text-green-400"
-              >
-                Chat on WhatsApp
-              </a>
-            )}
           </div>
         );
       })}
