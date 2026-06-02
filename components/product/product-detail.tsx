@@ -3,12 +3,27 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { MapPin, Phone, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { ProductGrid } from "@/components/product/product-grid";
 
 export function ProductDetail({ product }: { product: Product }) {
+  const images = useMemo(() => product.images.filter(Boolean), [product.images]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const activeImage = images[activeImageIndex] ?? images[0] ?? "";
+  const hasMultipleImages = images.length > 1;
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product.id]);
+
+  function showNextImage() {
+    if (!hasMultipleImages) return;
+    setActiveImageIndex((current) => (current + 1) % images.length);
+  }
+
   function openWhatsApp() {
     const message = `Hello CollegeCart,
 
@@ -29,14 +44,37 @@ Thank you.`;
     <div className="space-y-10">
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-[2rem] p-3">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-slate-100">
-            <Image src={product.images[0]} alt={product.name} fill priority unoptimized={product.images[0].startsWith("data:")} sizes="(max-width: 1024px) 100vw, 58vw" className="object-cover" />
-          </div>
-          <div className="mt-3 grid grid-cols-4 gap-3">
-            {product.images.map((image) => (
-              <div key={image} className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100 ring-2 ring-ocean/30">
-                <Image src={image} alt="" fill unoptimized={image.startsWith("data:")} sizes="120px" className="object-cover" />
+          <button
+            type="button"
+            onClick={showNextImage}
+            disabled={!hasMultipleImages}
+            className="relative block aspect-[4/3] w-full overflow-hidden rounded-[1.5rem] bg-slate-100 disabled:cursor-default"
+          >
+            {activeImage ? (
+              <Image src={activeImage} alt={product.name} fill priority unoptimized={activeImage.startsWith("data:")} sizes="(max-width: 1024px) 100vw, 58vw" className="object-cover" />
+            ) : null}
+            {hasMultipleImages ? (
+              <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-ink/60 px-3 py-1.5 backdrop-blur">
+                {images.map((image, index) => (
+                  <span
+                    key={`${image}-main-dot-${index}`}
+                    className={`size-2 rounded-full transition ${index === activeImageIndex ? "bg-white" : "bg-white/45"}`}
+                  />
+                ))}
               </div>
+            ) : null}
+          </button>
+          <div className="mt-3 grid grid-cols-4 gap-3">
+            {images.map((image, index) => (
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                onClick={() => setActiveImageIndex(index)}
+                className={`relative aspect-square overflow-hidden rounded-2xl bg-slate-100 ring-2 transition ${index === activeImageIndex ? "ring-ocean" : "ring-slate-200 hover:ring-ocean/50 dark:ring-white/10"}`}
+                aria-label={`View product image ${index + 1}`}
+              >
+                <Image src={image} alt="" fill unoptimized={image.startsWith("data:")} sizes="120px" className="object-cover" />
+              </button>
             ))}
           </div>
         </motion.div>
@@ -82,7 +120,7 @@ Thank you.`;
               Buy Now
             </button>
             <p className="mt-3 rounded-2xl bg-white/75 px-4 py-3 text-center text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10">
-              Meet and pay: Rs 0. Campus delivery: Rs 60.
+              Meet and pay is free. Campus delivery is available for an additional Rs 60.
             </p>
           </div>
         </aside>
