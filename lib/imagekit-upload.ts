@@ -1,8 +1,5 @@
 export type UploadProgressCallback = (progress: number) => void;
 
-const IMAGEKIT_PUBLIC_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "public_Urhn2Yob/+pVBCEQ4Ik+kXefqCI=";
-const IMAGEKIT_URL_ENDPOINT = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || "https://ik.imagekit.io/ned6kfdmg";
-
 export async function uploadToImageKit(
   file: File,
   folder = "collegecart/listings",
@@ -15,15 +12,32 @@ export async function uploadToImageKit(
     console.log("File:", file.name, "Size:", file.size, "Type:", file.type);
     onProgress?.(10);
 
-    // Validate file size (ImageKit free tier limit is 25GB, but keep reasonable limit)
+    // Validate file size
     if (file.size > 100 * 1024 * 1024) {
       throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB (max: 100MB)`);
     }
 
+    // Get auth token from server
+    console.log("🔐 Fetching ImageKit auth token...");
+    const authResponse = await fetch("/api/imagekit-auth");
+    
+    if (!authResponse.ok) {
+      const authError = await authResponse.json();
+      console.error("Auth error:", authError);
+      throw new Error(`Auth failed: ${authError.error}`);
+    }
+
+    const { token, expire, signature, publicKey } = await authResponse.json();
+    console.log("✅ Auth token received");
+    onProgress?.(20);
+
     // Create form data for ImageKit
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+    formData.append("publicKey", publicKey);
+    formData.append("token", token);
+    formData.append("expire", String(expire));
+    formData.append("signature", signature);
     
     // Create unique filename
     const timestamp = Date.now();
@@ -71,6 +85,8 @@ export async function uploadToImageKit(
         errorMessage = error.message;
       } else if (error.message.includes("CORS") || error.message.includes("blocked")) {
         errorMessage = "Network blocked - check your firewall or try a different network";
+      } else if (error.message.includes("Auth failed")) {
+        errorMessage = "Authentication failed - check your ImageKit configuration";
       } else {
         errorMessage = error.message;
       }

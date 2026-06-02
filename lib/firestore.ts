@@ -115,15 +115,29 @@ export async function saveUserProfile(profile: UserProfile) {
 }
 
 export async function uploadIdCardImage(userId: string, file: File): Promise<string> {
-  const IMAGEKIT_PUBLIC_KEY = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY || "public_Urhn2Yob/+pVBCEQ4Ik+kXefqCI=";
-
   try {
+    // Get auth token from server
+    console.log("🔐 Fetching ImageKit auth token for ID card...");
+    const authResponse = await fetch("/api/imagekit-auth");
+    
+    if (!authResponse.ok) {
+      const authError = await authResponse.json();
+      console.error("Auth error:", authError);
+      throw new Error(`Auth failed: ${authError.error}`);
+    }
+
+    const { token, expire, signature, publicKey } = await authResponse.json();
+    console.log("✅ Auth token received for ID card");
+
     const fileExt = file.name.split(".").pop() || "jpg";
     const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
     
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("publicKey", IMAGEKIT_PUBLIC_KEY);
+    formData.append("publicKey", publicKey);
+    formData.append("token", token);
+    formData.append("expire", String(expire));
+    formData.append("signature", signature);
     formData.append("fileName", fileName);
     formData.append("folder", "/collegecart/idcards");
     formData.append("useUniqueFileName", "false");
