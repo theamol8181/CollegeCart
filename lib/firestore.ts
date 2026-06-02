@@ -48,34 +48,35 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
   } as Product;
 }
 
-export function listenToProducts(onChange: (products: Product[]) => void) {
+export function listenToProducts(
+  onChange: (products: Product[]) => void,
+  options: { collegeName?: string; allColleges?: boolean } = {}
+) {
   if (!db) {
     console.error("❌ Firebase Firestore not initialized");
     return () => undefined;
   }
 
   try {
-    const productsQuery = query(collection(db, "products"), orderBy("createdAt", "desc"), limit(80));
+    const collegeName = options.collegeName?.trim();
+    const productsQuery = collegeName && !options.allColleges
+      ? query(collection(db, "products"), where("collegeName", "==", collegeName), limit(80))
+      : query(collection(db, "products"), orderBy("createdAt", "desc"), limit(80));
     
     return onSnapshot(
       productsQuery,
       (snapshot) => {
-        console.log(`📦 Firebase snapshot: ${snapshot.size} products`);
-        const products = snapshot.docs.map((item) => {
-          const product = toProduct(item.id, item.data());
-          console.log(`  ✓ ${product.name} (${product.id}): status="${product.status}"`);
-          return product;
-        });
+        const products = snapshot.docs.map((item) => toProduct(item.id, item.data()));
         
         // Product listings go live immediately. Keep rejected/sold below live listings.
         const sorted = products.sort((a, b) => {
           const statusOrder = { approved: 0, rejected: 1, sold: 2, pending: 3 };
           const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 4;
           const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 4;
-          return aOrder - bOrder;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
         
-        console.log(`✅ Snapshot ready: ${products.filter(p => p.status === 'approved').length} approved products`);
         onChange(sorted);
       },
       (error) => {

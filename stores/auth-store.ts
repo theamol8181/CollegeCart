@@ -71,8 +71,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (typeof window === "undefined") return;
     const storedUsers = window.localStorage.getItem("collegecart-users");
     const storedUser = window.localStorage.getItem("collegecart-user");
-    const users = storedUsers ? (JSON.parse(storedUsers) as UserProfile[]).map(normalizeUser) : [];
     const user = storedUser ? normalizeUser(JSON.parse(storedUser) as UserProfile) : null;
+    const shouldHydrateUsers = !user || user.role === "admin";
+    const users = shouldHydrateUsers && storedUsers
+      ? (JSON.parse(storedUsers) as UserProfile[]).map(normalizeUser)
+      : user
+        ? [user]
+        : [];
     set({ users: user ? upsertUser(users, user) : users, user, hydrated: true });
   },
   updateUser: (updates) =>

@@ -15,6 +15,7 @@ export function ProductImageSlider({ images, alt, sizes, imageClassName = "" }: 
   const validImages = useMemo(() => images.filter(Boolean), [images]);
   const [activeIndex, setActiveIndex] = useState(0);
   const hasMultipleImages = validImages.length > 1;
+  const activeImage = validImages[activeIndex] ?? validImages[0];
 
   useEffect(() => {
     setActiveIndex(0);
@@ -43,17 +44,15 @@ export function ProductImageSlider({ images, alt, sizes, imageClassName = "" }: 
       onClick={showNextImage}
       className={`absolute inset-0 ${hasMultipleImages ? "cursor-pointer" : ""}`}
     >
-      {validImages.map((image, index) => (
-        <Image
-          key={`${image}-${index}`}
-          src={image}
-          alt={index === activeIndex ? alt : ""}
-          fill
-          unoptimized={image.startsWith("data:")}
-          sizes={sizes}
-          className={`object-cover transition duration-1000 ease-out ${index === activeIndex ? "opacity-100" : "opacity-0"} ${imageClassName}`}
-        />
-      ))}
+      <Image
+        key={`${activeImage}-${activeIndex}`}
+        src={activeImage}
+        alt={alt}
+        fill
+        unoptimized={activeImage.startsWith("data:")}
+        sizes={sizes}
+        className={`object-cover transition duration-1000 ease-out ${imageClassName}`}
+      />
       {hasMultipleImages ? (
         <div className="absolute bottom-3 right-3 flex gap-1.5 rounded-full bg-ink/55 px-2 py-1 backdrop-blur">
           {validImages.map((image, index) => (

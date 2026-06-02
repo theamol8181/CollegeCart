@@ -16,7 +16,7 @@ import {
 import { db } from "@/lib/firebase";
 import type { Product, UserProfile } from "@/lib/types";
 
-export type OrderStatus = "pending" | "accepted" | "rejected" | "delivered" | "cancelled";
+export type OrderStatus = "processing" | "on_way" | "delivered";
 
 export interface Order {
   id: string;
@@ -38,6 +38,50 @@ export interface Order {
   whatsappLink?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+function normalizeOrderStatus(status: unknown): OrderStatus {
+  if (status === "on_way" || status === "delivered") return status;
+  return "processing";
+}
+
+function normalizeOrderDate(value: unknown) {
+  if (typeof value === "string" && value) return value;
+  if (value && typeof value === "object" && "toDate" in value && typeof value.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+  if (value && typeof value === "object" && "seconds" in value && typeof value.seconds === "number") {
+    return new Date(value.seconds * 1000).toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function normalizeOrderPrice(data: Record<string, any>) {
+  const value = data.productPrice ?? data.price ?? data.totalAmount ?? 0;
+  const price = Number(value);
+  return Number.isFinite(price) ? price : 0;
+}
+
+function toOrder(id: string, data: Record<string, any>): Order {
+  return {
+    id,
+    ...data,
+    productId: data.productId ?? "",
+    productName: data.productName ?? "CollegeCart order",
+    productImage: data.productImage ?? "",
+    productPrice: normalizeOrderPrice(data),
+    buyerId: data.buyerId ?? "",
+    buyerName: data.buyerName ?? "Buyer",
+    buyerPhone: data.buyerPhone ?? "",
+    buyerEmail: data.buyerEmail ?? "",
+    sellerId: data.sellerId ?? "",
+    sellerName: data.sellerName ?? "Seller",
+    sellerPhone: data.sellerPhone ?? "",
+    sellerWhatsApp: data.sellerWhatsApp ?? "",
+    status: normalizeOrderStatus(data.status),
+    createdAt: normalizeOrderDate(data.createdAt),
+    updatedAt: normalizeOrderDate(data.updatedAt ?? data.createdAt),
+  } as Order;
 }
 
 export async function createOrder(order: Omit<Order, "id" | "createdAt" | "updatedAt">): Promise<string> {
@@ -75,7 +119,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Order;
+      return toOrder(docSnap.id, docSnap.data());
     }
     return null;
   } catch (error) {
@@ -90,15 +134,13 @@ export function listenToBuyerOrders(buyerId: string, onChange: (orders: Order[])
   try {
     const ordersQuery = query(
       collection(db, "orders"),
-      where("buyerId", "==", buyerId),
-      orderBy("createdAt", "desc")
+      where("buyerId", "==", buyerId)
     );
 
     return onSnapshot(ordersQuery, (snapshot) => {
-      const orders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Order[];
+      const orders = snapshot.docs
+        .map((doc) => toOrder(doc.id, doc.data()))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       console.log(`📦 Buyer orders: ${orders.length}`);
       onChange(orders);
     });
@@ -114,15 +156,13 @@ export function listenToSellerOrders(sellerId: string, onChange: (orders: Order[
   try {
     const ordersQuery = query(
       collection(db, "orders"),
-      where("sellerId", "==", sellerId),
-      orderBy("createdAt", "desc")
+      where("sellerId", "==", sellerId)
     );
 
     return onSnapshot(ordersQuery, (snapshot) => {
-      const orders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Order[];
+      const orders = snapshot.docs
+        .map((doc) => toOrder(doc.id, doc.data()))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       console.log(`📦 Seller orders: ${orders.length}`);
       onChange(orders);
     });
@@ -139,10 +179,7 @@ export function listenToAllOrders(onChange: (orders: Order[]) => void) {
     const ordersQuery = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
     return onSnapshot(ordersQuery, (snapshot) => {
-      const orders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Order[];
+      const orders = snapshot.docs.map((doc) => toOrder(doc.id, doc.data()));
       console.log(`📦 All orders: ${orders.length}`);
       onChange(orders);
     });

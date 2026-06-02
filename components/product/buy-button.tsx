@@ -44,7 +44,7 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
         sellerName: product.sellerName,
         sellerPhone: product.contactNumber || "",
         sellerWhatsApp: COLLEGECART_WHATSAPP_NUMBER,
-        status: "pending",
+        status: "processing",
         buyerNotes: "",
       });
 

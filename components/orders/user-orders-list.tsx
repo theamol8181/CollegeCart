@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock, X, Truck, MessageCircle } from "lucide-react";
+import { CheckCircle2, Clock, Truck, MessageCircle } from "lucide-react";
 import { listenToBuyerOrders } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/orders";
 import { useAuthStore } from "@/stores/auth-store";
 import { formatPrice } from "@/lib/utils";
 
 const statusConfig: Record<OrderStatus, { icon: any; color: string; text: string }> = {
-  pending: { icon: Clock, color: "text-amber-600", text: "Pending" },
-  accepted: { icon: CheckCircle2, color: "text-blue-600", text: "Accepted" },
-  rejected: { icon: X, color: "text-red-600", text: "Rejected" },
-  delivered: { icon: Truck, color: "text-green-600", text: "Delivered" },
-  cancelled: { icon: X, color: "text-slate-600", text: "Cancelled" },
+  processing: { icon: Clock, color: "text-amber-600", text: "Processing" },
+  on_way: { icon: Truck, color: "text-blue-600", text: "On the way" },
+  delivered: { icon: CheckCircle2, color: "text-green-600", text: "Delivered" },
 };
 
 export function UserOrdersList() {

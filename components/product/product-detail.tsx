@@ -1,17 +1,21 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { MapPin, Phone, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, LogIn, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
+import { ProductGrid } from "@/components/product/product-grid";
+import { createBuyNowOrder, openBuyNowChat } from "@/lib/buy-now";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
-import { ProductGrid } from "@/components/product/product-grid";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function ProductDetail({ product }: { product: Product }) {
+  const user = useAuthStore((state) => state.user);
   const images = useMemo(() => product.images.filter(Boolean), [product.images]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [buying, setBuying] = useState(false);
   const activeImage = images[activeImageIndex] ?? images[0] ?? "";
   const hasMultipleImages = images.length > 1;
 
@@ -19,25 +23,51 @@ export function ProductDetail({ product }: { product: Product }) {
     setActiveImageIndex(0);
   }, [product.id]);
 
+  if (!user) {
+    return (
+      <section className="mx-auto grid min-h-[60vh] max-w-3xl place-items-center">
+        <div className="w-full rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-premium dark:border-white/10 dark:bg-white/[0.08]">
+          <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-ocean/10 text-ocean">
+            <Lock className="size-8" />
+          </div>
+          <h1 className="mt-5 text-3xl font-black text-ink dark:text-white">Product details locked</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-7 text-slate-500 dark:text-slate-300">
+            Log in to unlock product photos, price, seller details and Buy Now.
+          </p>
+          <Link
+            href="/login"
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-ocean px-6 py-3 text-sm font-black text-white shadow-glow"
+          >
+            <LogIn className="size-4" />
+            Login to unlock
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
   function showNextImage() {
     if (!hasMultipleImages) return;
     setActiveImageIndex((current) => (current + 1) % images.length);
   }
 
-  function openWhatsApp() {
-    const message = `Hello CollegeCart,
+  async function handleBuyNow() {
+    if (!user) {
+      alert("Please log in before buying.");
+      window.location.href = "/login";
+      return;
+    }
 
-I am interested in this product.
-
-Product Name: ${product.name}
-Price: ₹${product.price}
-
-Please share availability, payment details and delivery information.
-
-Thank you.`;
-    
-    const whatsappUrl = `https://wa.me/${COLLEGECART_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
+    setBuying(true);
+    try {
+      const orderId = await createBuyNowOrder(product, user);
+      openBuyNowChat(product, orderId);
+    } catch (error) {
+      console.error("Could not create order:", error);
+      alert(error instanceof Error ? error.message : "Could not create order. Please try again.");
+    } finally {
+      setBuying(false);
+    }
   }
 
   return (
@@ -51,7 +81,15 @@ Thank you.`;
             className="relative block aspect-[4/3] w-full overflow-hidden rounded-[1.5rem] bg-slate-100 disabled:cursor-default"
           >
             {activeImage ? (
-              <Image src={activeImage} alt={product.name} fill priority unoptimized={activeImage.startsWith("data:")} sizes="(max-width: 1024px) 100vw, 58vw" className="object-cover" />
+              <Image
+                src={activeImage}
+                alt={product.name}
+                fill
+                priority
+                unoptimized={activeImage.startsWith("data:")}
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="object-cover"
+              />
             ) : null}
             {hasMultipleImages ? (
               <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-ink/60 px-3 py-1.5 backdrop-blur">
@@ -99,7 +137,14 @@ Thank you.`;
 
           <div className="mt-6 rounded-[1.5rem] bg-white p-4 ring-1 ring-slate-200 dark:bg-white/[0.08] dark:ring-white/10">
             <div className="flex items-center gap-3">
-              <Image src={product.sellerAvatar} alt="" width={52} height={52} unoptimized={product.sellerAvatar.startsWith("data:")} className="size-13 rounded-full object-cover" />
+              <Image
+                src={product.sellerAvatar}
+                alt=""
+                width={52}
+                height={52}
+                unoptimized={product.sellerAvatar.startsWith("data:")}
+                className="size-13 rounded-full object-cover"
+              />
               <div>
                 <p className="font-black text-ink dark:text-white">{product.sellerName}</p>
                 <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">{product.collegeName}</p>
@@ -113,11 +158,13 @@ Thank you.`;
 
           <div className="mt-6">
             <button
-              onClick={openWhatsApp}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow transition hover:bg-emerald-300"
+              type="button"
+              onClick={handleBuyNow}
+              disabled={buying}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              <Phone className="size-5" />
-              Buy Now
+              {buying ? <Loader2 className="size-5 animate-spin" /> : <Phone className="size-5" />}
+              {buying ? "Creating order..." : "Buy Now"}
             </button>
             <p className="mt-3 rounded-2xl bg-white/75 px-4 py-3 text-center text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10">
               Meet and pay is free. Campus delivery is available for an additional Rs 60.
@@ -132,9 +179,9 @@ Thank you.`;
       </section>
 
       <section className="rounded-[2rem] border-2 border-amber-300/30 bg-amber-50 p-6 dark:border-amber-900/30 dark:bg-amber-950/10">
-        <h3 className="text-lg font-black text-amber-900 dark:text-amber-100">📋 How ordering works</h3>
+        <h3 className="text-lg font-black text-amber-900 dark:text-amber-100">How ordering works</h3>
         <p className="mt-3 text-sm leading-7 text-amber-800 dark:text-amber-200">
-          Orders are processed manually by the CollegeCart team. After contacting us on WhatsApp, we will confirm availability and arrange delivery. Payment and delivery details will be shared by our team.
+          Tap Buy Now to create your order instantly. CollegeCart will confirm availability and share the next steps for meet and pay or campus delivery.
         </p>
       </section>
 

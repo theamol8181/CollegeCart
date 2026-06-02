@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useMemo } from "react";
 import { ArrowRight, BadgeCheck, Heart, Package, ShieldCheck, ShoppingBag, Sparkles, UserRound } from "lucide-react";
 import { ProductCard } from "@/components/product/product-card";
 import { demoUser } from "@/lib/data";
+import { filterProductsForUserCollege } from "@/lib/college-filter";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -13,11 +15,24 @@ import { useMarketplaceStore } from "@/stores/marketplace-store";
 export function DashboardShell() {
   const user = useAuthStore((state) => state.user) ?? demoUser;
   const { products, savedIds } = useMarketplaceStore();
-  const approved = products.filter((product) => product.status === "approved");
-  const recentListings = approved.slice(0, 4);
-  const myProducts = products.filter((product) => product.sellerId === user.uid || product.sellerName === user.fullName);
-  const savedItems = approved.filter((product) => savedIds.includes(product.id));
-  const completion = Math.round(
+  const savedIdSet = useMemo(() => new Set(savedIds), [savedIds]);
+  const approved = useMemo(
+    () => filterProductsForUserCollege(
+      products.filter((product) => product.status === "approved"),
+      user
+    ),
+    [products, user]
+  );
+  const recentListings = useMemo(() => approved.slice(0, 4), [approved]);
+  const myProducts = useMemo(
+    () => products.filter((product) => product.sellerId === user.uid || product.sellerName === user.fullName),
+    [products, user.fullName, user.uid]
+  );
+  const savedItems = useMemo(
+    () => approved.filter((product) => savedIdSet.has(product.id)),
+    [approved, savedIdSet]
+  );
+  const completion = useMemo(() => Math.round(
     ([
       user.fullName,
       user.collegeName,
@@ -30,15 +45,15 @@ export function DashboardShell() {
     ].filter(Boolean).length /
       8) *
       100
-  );
-  const studentDetails = [
+  ), [user]);
+  const studentDetails = useMemo(() => [
     { label: "College", value: user.collegeName || "Not added" },
     { label: "USN", value: user.usn || "Not added" },
     { label: "Year", value: user.year || "Not added" },
     { label: "Department", value: user.department || "Not added" },
     { label: "Phone", value: user.phoneNumber || "Not added" },
     { label: "Verification", value: user.verificationStatus || "needs_id" }
-  ];
+  ], [user]);
 
   return (
     <div className="space-y-8">
@@ -59,7 +74,7 @@ export function DashboardShell() {
             </div>
             <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">Welcome, {user.fullName.split(" ")[0]}</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-white/[0.72]">
-              Your verified student dashboard shows only live listings from approved CollegeCart users.
+              Your verified student dashboard shows live listings from your selected college.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-black text-ink">

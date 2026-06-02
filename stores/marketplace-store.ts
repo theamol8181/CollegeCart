@@ -6,6 +6,7 @@ import type { Product, ProductCategory, ProductCondition } from "@/lib/types";
 export const PRODUCTS_STORAGE_KEY = "collegecart-products";
 export const DELETED_PRODUCTS_STORAGE_KEY = "collegecart-deleted-products";
 export const PRODUCT_STATUS_OVERRIDES_STORAGE_KEY = "collegecart-product-status-overrides";
+export const SAVED_PRODUCTS_STORAGE_KEY = "collegecart-saved-products";
 const MAX_STORAGE_ITEMS = 50;
 const MAX_DELETED_ITEMS = 200;
 type ProductStatus = NonNullable<Product["status"]>;
@@ -71,6 +72,26 @@ function clearStatusOverride(productId: string) {
   saveStatusOverrides(overrides);
 }
 
+function getSavedProductIds() {
+  if (typeof window === "undefined") return [] as string[];
+
+  try {
+    const stored = window.localStorage.getItem(SAVED_PRODUCTS_STORAGE_KEY);
+    if (!stored) return [] as string[];
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [] as string[];
+    return parsed.filter((id): id is string => typeof id === "string" && id.length > 0);
+  } catch {
+    window.localStorage.removeItem(SAVED_PRODUCTS_STORAGE_KEY);
+    return [] as string[];
+  }
+}
+
+function saveSavedProductIds(productIds: string[]) {
+  const uniqueIds = Array.from(new Set(productIds));
+  safeSetItem(SAVED_PRODUCTS_STORAGE_KEY, JSON.stringify(uniqueIds));
+}
+
 function keepRealListings(
   products: Product[],
   deletedIds = getDeletedProductIds(),
@@ -134,6 +155,7 @@ type MarketplaceState = {
   setCondition: (condition: ProductCondition | "All") => void;
   setMaxPrice: (maxPrice: number) => void;
   toggleSaved: (productId: string) => void;
+  setSavedIds: (productIds: string[]) => void;
 };
 
 export const useMarketplaceStore = create<MarketplaceState>((set) => ({
@@ -160,20 +182,23 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       // Save to localStorage - Firebase data takes priority
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
       
-      console.log(`📦 setProducts: ${realListings.length} from Firebase + ${localListings.length} local = ${mergedListings.length} total`);
-      
       return { products: mergedListings };
     }),
   hydrateProducts: () => {
     if (typeof window === "undefined") return;
+    const savedIds = getSavedProductIds();
     const stored = window.localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!stored) return;
+    if (!stored) {
+      set({ savedIds });
+      return;
+    }
     try {
       const realListings = keepRealListings(JSON.parse(stored) as Product[]);
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(realListings));
-      set({ products: realListings });
+      set({ products: realListings, savedIds });
     } catch {
       window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
+      set({ savedIds });
     }
   },
   addProduct: (product) =>
@@ -232,9 +257,15 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   setCondition: (condition) => set({ condition }),
   setMaxPrice: (maxPrice) => set({ maxPrice }),
   toggleSaved: (productId) =>
-    set((state) => ({
-      savedIds: state.savedIds.includes(productId)
+    set((state) => {
+      const savedIds = state.savedIds.includes(productId)
         ? state.savedIds.filter((id) => id !== productId)
-        : [...state.savedIds, productId]
-    }))
+        : [...state.savedIds, productId];
+      saveSavedProductIds(savedIds);
+      return { savedIds };
+    }),
+  setSavedIds: (productIds) => {
+    saveSavedProductIds(productIds);
+    set({ savedIds: Array.from(new Set(productIds)) });
+  }
 }));

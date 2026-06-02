@@ -4,13 +4,18 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { ProductDetail } from "@/components/product/product-detail";
 import { EmptyState } from "@/components/shared/empty-state";
+import { productMatchesUserCollege } from "@/lib/college-filter";
 import type { Product } from "@/lib/types";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function ProductPageClient({ id, fallbackProduct }: { id: string; fallbackProduct?: Product }) {
+  const user = useAuthStore((state) => state.user);
   const product =
-    useMarketplaceStore((state) => state.products.find((item) => item.id === id && item.status === "approved")) ??
-    (fallbackProduct?.status === "approved" ? fallbackProduct : undefined);
+    useMarketplaceStore((state) =>
+      state.products.find((item) => item.id === id && item.status === "approved" && productMatchesUserCollege(item, user))
+    ) ??
+    (fallbackProduct?.status === "approved" && productMatchesUserCollege(fallbackProduct, user) ? fallbackProduct : undefined);
 
   if (!product) {
     return (

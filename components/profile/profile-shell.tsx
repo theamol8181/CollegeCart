@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { BadgeCheck, Camera, GraduationCap, Heart, IdCard, ListChecks, LogOut, PackageCheck, Phone, Save, Settings, UserRound, X } from "lucide-react";
 import { useState } from "react";
+import { UserOrdersList } from "@/components/orders/user-orders-list";
 import { bangaloreColleges, years } from "@/lib/bangalore-colleges";
 import { demoUser } from "@/lib/data";
+import { filterProductsForUserCollege } from "@/lib/college-filter";
 import { fileToCompressedDataUrl } from "@/lib/image-fallback";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -24,7 +26,10 @@ export function ProfileShell() {
   const [activeTab, setActiveTab] = useState("My Listings");
   const [editing, setEditing] = useState(false);
   const profile = user ?? demoUser;
-  const approvedProducts = products.filter((product) => product.status === "approved");
+  const approvedProducts = filterProductsForUserCollege(
+    products.filter((product) => product.status === "approved"),
+    profile
+  );
   const myListings = products.filter((product) => product.sellerId === profile.uid || product.sellerName === profile.fullName);
   const savedProducts = approvedProducts.filter((product) => savedIds.includes(product.id));
 
@@ -88,11 +93,7 @@ export function ProfileShell() {
         </div>
         {activeTab === "My Listings" ? <ListingTable products={myListings} /> : null}
         {activeTab === "Saved Products" ? <ListingTable products={savedProducts} /> : null}
-        {activeTab === "Purchase History" ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200">
-            {"You haven&apos;t purchased anything yet."}
-          </div>
-        ) : null}
+        {activeTab === "Purchase History" ? <UserOrdersList /> : null}
         {activeTab === "Account Settings" ? (
           <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.08] md:grid-cols-2">
             <Setting label="Email" value={profile.email} />

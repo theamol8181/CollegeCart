@@ -3,13 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { type MouseEvent, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
   Bike,
   BookOpen,
   Calculator,
+  Heart,
   Headphones,
+  Loader2,
   MapPin,
   NotebookTabs,
   Package,
@@ -21,12 +24,17 @@ import {
   Utensils,
   WalletCards
 } from "lucide-react";
+import { ProductCard } from "@/components/product/product-card";
+import { ProductImageSlider } from "@/components/product/product-image-slider";
 import { bangaloreColleges } from "@/lib/bangalore-colleges";
+import { createBuyNowOrder, openBuyNowChat } from "@/lib/buy-now";
 import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
+import { saveUserProfile } from "@/lib/firestore";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import { filterProductsForUserCollege } from "@/lib/college-filter";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
-import { ProductImageSlider } from "@/components/product/product-image-slider";
 
 const categoryTiles = [
   { name: "Books", icon: BookOpen, color: "bg-ocean/10 text-ocean" },
@@ -48,15 +56,19 @@ const trustItems = [
 ];
 
 export function PublicHomepage() {
+  const user = useAuthStore((state) => state.user);
   const marketplaceProducts = useMarketplaceStore((state) => state.products);
-  const approvedProducts = marketplaceProducts.filter((product) => product.status === "approved");
+  const approvedProducts = filterProductsForUserCollege(
+    marketplaceProducts.filter((product) => product.status === "approved"),
+    user
+  );
 
   const featured = approvedProducts.slice(0, 4);
   const recent = approvedProducts.slice(0, 4);
 
   return (
     <div className="space-y-12">
-      <Hero products={featured.slice(0, 3)} />
+      <Hero products={user ? featured.slice(0, 3) : []} />
       <CollegeShowcase />
       <Categories />
       {featured.length > 0 && <ProductSection eyebrow="Featured products" title="Student essentials ready to buy" products={featured} />}
@@ -197,12 +209,81 @@ Thank you.`;
     window.open(whatsappUrl, "_blank");
   }
 
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
+  const { savedIds, toggleSaved } = useMarketplaceStore();
+  const [buyingProductId, setBuyingProductId] = useState<string | null>(null);
+
+  if (!user) {
+    return (
+      <section>
+        <SectionHeading eyebrow={eyebrow} title={title} action />
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function handleSave(product: Product, event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const isSaved = savedIds.includes(product.id);
+    const nextSavedIds = isSaved
+      ? savedIds.filter((id) => id !== product.id)
+      : [...savedIds, product.id];
+
+    toggleSaved(product.id);
+
+    if (user) {
+      const updatedAt = new Date().toISOString();
+      updateUser({ savedProductIds: nextSavedIds, updatedAt });
+      void saveUserProfile({ ...user, savedProductIds: nextSavedIds, updatedAt }).catch((error) => {
+        console.error("Could not sync saved product:", error);
+      });
+    }
+  }
+
+  async function handleBuyNow(product: Product) {
+    if (!user) {
+      alert("Please log in before buying.");
+      window.location.href = "/login";
+      return;
+    }
+
+    setBuyingProductId(product.id);
+    try {
+      const orderId = await createBuyNowOrder(product, user);
+      openBuyNowChat(product, orderId);
+    } catch (error) {
+      console.error("Could not create order:", error);
+      alert(error instanceof Error ? error.message : "Could not create order. Please try again.");
+    } finally {
+      setBuyingProductId(null);
+    }
+  }
+
   return (
     <section>
       <SectionHeading eyebrow={eyebrow} title={title} action />
       <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((product) => (
-          <article key={product.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/[0.08]">
+          <article key={product.id} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/[0.08]">
+            <button
+              type="button"
+              onClick={(event) => handleSave(product, event)}
+              aria-label={savedIds.includes(product.id) ? `Remove ${product.name} from saved products` : `Save ${product.name}`}
+              className={`absolute right-3 top-3 z-20 grid size-10 place-items-center rounded-full shadow-sm ring-1 ring-slate-200 backdrop-blur transition ${
+                savedIds.includes(product.id)
+                  ? "bg-coral text-white ring-coral"
+                  : "bg-white/90 text-slate-700 hover:bg-white hover:text-coral dark:bg-night/85 dark:text-white dark:ring-white/10"
+              }`}
+            >
+              <Heart className={`size-5 ${savedIds.includes(product.id) ? "fill-current" : ""}`} />
+            </button>
             <Link href={`/product/${product.id}`} className="block" aria-label={`Open details for ${product.name}`}>
               <div className="relative aspect-[4/3] bg-slate-100">
                 <ProductImageSlider images={product.images} alt={product.name} sizes="(max-width: 768px) 50vw, 25vw" />
@@ -224,11 +305,13 @@ Thank you.`;
             </Link>
             <div className="p-4 pt-0">
               <button 
-                onClick={() => openWhatsApp(product)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink transition hover:bg-emerald-300"
+                type="button"
+                onClick={() => void handleBuyNow(product)}
+                disabled={buyingProductId === product.id}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-mint px-3 py-2.5 text-xs font-black text-ink transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Phone className="size-4" />
-                Buy Now
+                {buyingProductId === product.id ? <Loader2 className="size-4 animate-spin" /> : <Phone className="size-4" />}
+                {buyingProductId === product.id ? "Creating order..." : "Buy Now"}
               </button>
             </div>
           </article>

@@ -2,12 +2,15 @@
 
 import { ProductCard } from "@/components/product/product-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { productMatchesUserCollege } from "@/lib/college-filter";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export default function WishlistPage() {
+  const user = useAuthStore((state) => state.user);
   const { products, savedIds } = useMarketplaceStore();
   const savedProducts = products.filter(
-    (product) => product.status === "approved" && savedIds.includes(product.id)
+    (product) => product.status === "approved" && savedIds.includes(product.id) && productMatchesUserCollege(product, user)
   );
 
   if (!savedProducts.length) {

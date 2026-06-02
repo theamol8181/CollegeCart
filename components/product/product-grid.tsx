@@ -3,13 +3,17 @@
 import { AnimatePresence } from "framer-motion";
 import { ProductCard } from "@/components/product/product-card";
 import { EmptyState } from "@/components/shared/empty-state";
+import { productMatchesUserCollege } from "@/lib/college-filter";
+import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
 
 export function ProductGrid({ limit }: { limit?: number }) {
   const { products, query, category, condition, maxPrice } = useMarketplaceStore();
+  const user = useAuthStore((state) => state.user);
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = products
     .filter((product) => product.status === "approved")
+    .filter((product) => productMatchesUserCollege(product, user))
     .filter((product) => product.price <= maxPrice)
     .filter((product) => category === "All" || product.category === category)
     .filter((product) => condition === "All" || product.condition === condition)

@@ -12,6 +12,7 @@ import {
   DELETED_PRODUCTS_STORAGE_KEY,
   PRODUCTS_STORAGE_KEY,
   PRODUCT_STATUS_OVERRIDES_STORAGE_KEY,
+  SAVED_PRODUCTS_STORAGE_KEY,
   useMarketplaceStore
 } from "@/stores/marketplace-store";
 
@@ -21,6 +22,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const { theme } = useThemeStore();
   const hydrateProducts = useMarketplaceStore((state) => state.hydrateProducts);
   const setProducts = useMarketplaceStore((state) => state.setProducts);
+  const setSavedIds = useMarketplaceStore((state) => state.setSavedIds);
+  const currentUserRole = currentUser?.role;
+  const currentUserUid = currentUser?.uid;
+  const hasCurrentUser = Boolean(currentUser);
+  const productCollegeName = currentUserRole === "student" ? currentUser?.collegeName ?? "" : "";
+  const syncAllProductColleges = !hasCurrentUser || currentUserRole === "admin" || !productCollegeName;
+  const allowsAnonymousProductSync = pathname === "/" || pathname === "/search" || pathname.startsWith("/product/");
 
   useEffect(() => {
     const root = document.documentElement;
@@ -32,15 +40,30 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   // Listen to products from Firebase
   useEffect(() => {
     hydrateProducts();
-    return listenToProducts(setProducts);
-  }, [hydrateProducts, setProducts]);
+    if (!hasCurrentUser && !allowsAnonymousProductSync) return;
+    if (currentUserRole === "student" && !productCollegeName) return;
+    return listenToProducts(setProducts, {
+      collegeName: productCollegeName,
+      allColleges: syncAllProductColleges
+    });
+  }, [
+    allowsAnonymousProductSync,
+    currentUserRole,
+    currentUserUid,
+    hasCurrentUser,
+    hydrateProducts,
+    productCollegeName,
+    setProducts,
+    syncAllProductColleges
+  ]);
 
   useEffect(() => {
     function refreshMarketplaceFromStorage(event: StorageEvent) {
       if (
         event.key === PRODUCTS_STORAGE_KEY ||
         event.key === DELETED_PRODUCTS_STORAGE_KEY ||
-        event.key === PRODUCT_STATUS_OVERRIDES_STORAGE_KEY
+        event.key === PRODUCT_STATUS_OVERRIDES_STORAGE_KEY ||
+        event.key === SAVED_PRODUCTS_STORAGE_KEY
       ) {
         hydrateProducts();
       }
@@ -50,28 +73,33 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", refreshMarketplaceFromStorage);
   }, [hydrateProducts]);
 
-  // Listen to users from Firebase (for admin to see pending approvals)
+  // Admin-only user sync. Keeping this off normal pages makes dashboard open faster.
   useEffect(() => {
+    if (currentUser?.role !== "admin" && pathname !== "/admin") return;
     return listenToUsers(setUsers);
-  }, [setUsers]);
+  }, [currentUser?.role, pathname, setUsers]);
 
   // Listen to current user profile changes in real-time (for admin approvals)
   useEffect(() => {
     if (!currentUser?.uid) return;
-    console.log(`🔊 Setting up real-time listener for user: ${currentUser.uid}`);
     return listenToCurrentUserProfile(currentUser.uid, (updatedUser) => {
       if (updatedUser && updatedUser.verificationStatus !== currentUser.verificationStatus) {
-        console.log(`🔄 User verification status changed: ${currentUser.verificationStatus} → ${updatedUser.verificationStatus}`);
         setUser(updatedUser);
       }
     });
   }, [currentUser?.uid, currentUser?.verificationStatus, setUser]);
 
   useEffect(() => {
+    if (currentUser?.savedProductIds?.length) {
+      setSavedIds(currentUser.savedProductIds);
+    }
+  }, [currentUser?.savedProductIds, setSavedIds]);
+
+  useEffect(() => {
     hydrateAuth();
     if (!auth) return;
 
-    return onAuthStateChanged(auth, async (firebaseUser) => {
+    return onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
         setHydrated(true);
@@ -79,32 +107,62 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }
 
       const email = firebaseUser.email ?? "";
-      const savedProfile = await getUserProfile(firebaseUser.uid);
       const localProfile = useAuthStore
         .getState()
         .users.find((item) => item.uid === firebaseUser.uid || item.email.toLowerCase() === email.toLowerCase());
-      const existing = savedProfile ?? localProfile;
       const isAdmin = email.toLowerCase() === ADMIN_EMAIL;
-      const profile = {
+      const instantProfile = {
         uid: firebaseUser.uid,
-        fullName: existing?.fullName ?? firebaseUser.displayName ?? "CollegeCart Student",
-        collegeName: existing?.collegeName ?? "",
+        fullName: localProfile?.fullName ?? firebaseUser.displayName ?? "CollegeCart Student",
+        collegeName: localProfile?.collegeName ?? "",
         email,
-        phoneNumber: existing?.phoneNumber,
-        year: existing?.year,
-        usn: existing?.usn,
-        department: existing?.department,
-        idCardUrl: existing?.idCardUrl,
-        avatarUrl: existing?.avatarUrl || firebaseUser.photoURL || "",
+        phoneNumber: localProfile?.phoneNumber,
+        year: localProfile?.year,
+        usn: localProfile?.usn,
+        department: localProfile?.department,
+        idCardUrl: localProfile?.idCardUrl,
+        avatarUrl: localProfile?.avatarUrl || firebaseUser.photoURL || "",
         role: isAdmin ? ("admin" as const) : ("student" as const),
         verificationStatus: ("approved" as const),
         online: true,
-        savedProductIds: existing?.savedProductIds ?? [],
-        createdAt: existing?.createdAt
+        savedProductIds: localProfile?.savedProductIds ?? [],
+        createdAt: localProfile?.createdAt
       };
-      setUser(profile);
-      await saveUserProfile(profile);
+
+      setUser(instantProfile);
       setHydrated(true);
+
+      void (async () => {
+        const savedProfile = await getUserProfile(firebaseUser.uid);
+        const existing = savedProfile ?? localProfile;
+        const profile = {
+          uid: firebaseUser.uid,
+          fullName: existing?.fullName ?? firebaseUser.displayName ?? "CollegeCart Student",
+          collegeName: existing?.collegeName ?? "",
+          email,
+          phoneNumber: existing?.phoneNumber,
+          year: existing?.year,
+          usn: existing?.usn,
+          department: existing?.department,
+          idCardUrl: existing?.idCardUrl,
+          avatarUrl: existing?.avatarUrl || firebaseUser.photoURL || "",
+          role: isAdmin ? ("admin" as const) : ("student" as const),
+          verificationStatus: ("approved" as const),
+          online: true,
+          savedProductIds: existing?.savedProductIds ?? [],
+          createdAt: existing?.createdAt
+        };
+        const shouldSaveProfile =
+          !savedProfile ||
+          savedProfile.role !== profile.role ||
+          savedProfile.verificationStatus !== profile.verificationStatus ||
+          savedProfile.avatarUrl !== profile.avatarUrl;
+
+        setUser(profile);
+        if (shouldSaveProfile) await saveUserProfile(profile);
+      })().catch((error) => {
+        console.error("Profile background sync failed:", error);
+      });
     });
   }, [hydrateAuth, setHydrated, setUser]);
 

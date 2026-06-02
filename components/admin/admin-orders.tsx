@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Clock3, Package, Truck, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock3, Truck, AlertCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { listenToAllOrders, updateOrderStatus } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/orders";
@@ -12,35 +12,23 @@ const statusConfig: Record<OrderStatus, {
   color: string;
   dotColor: string;
 }> = {
-  pending: {
+  processing: {
     icon: Clock3,
-    label: "Pending",
+    label: "Processing",
     color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     dotColor: "bg-amber-500",
   },
-  accepted: {
-    icon: CheckCircle2,
-    label: "Accepted",
+  on_way: {
+    icon: Truck,
+    label: "On the way",
     color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     dotColor: "bg-blue-500",
   },
-  rejected: {
-    icon: XCircle,
-    label: "Rejected",
-    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    dotColor: "bg-red-500",
-  },
   delivered: {
-    icon: Truck,
+    icon: CheckCircle2,
     label: "Delivered",
     color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     dotColor: "bg-green-500",
-  },
-  cancelled: {
-    icon: XCircle,
-    label: "Cancelled",
-    color: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
-    dotColor: "bg-slate-500",
   },
 };
 
@@ -91,13 +79,13 @@ export function AdminOrders() {
       color: "bg-ocean/10 text-ocean",
     },
     {
-      label: "Pending",
-      value: String(orders.filter((o) => o.status === "pending").length),
+      label: "Processing",
+      value: String(orders.filter((o) => o.status === "processing").length),
       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
-      label: "Accepted",
-      value: String(orders.filter((o) => o.status === "accepted").length),
+      label: "On the way",
+      value: String(orders.filter((o) => o.status === "on_way").length),
       color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     },
     {
@@ -140,7 +128,7 @@ export function AdminOrders() {
           className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold placeholder-slate-500 dark:border-white/10 dark:bg-white/5 dark:placeholder-slate-400"
         />
         <div className="flex flex-wrap gap-2">
-          {["all", "pending", "accepted", "rejected", "delivered", "cancelled"].map(
+          {["all", "processing", "on_way", "delivered"].map(
             (status) => (
               <button
                 key={status}
@@ -151,7 +139,7 @@ export function AdminOrders() {
                     : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
                 }`}
               >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {status === "on_way" ? "On the way" : status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
             )
           )}
@@ -170,7 +158,6 @@ export function AdminOrders() {
           {filteredOrders.length > 0 ? (
             filteredOrders.map((order) => {
               const config = statusConfig[order.status];
-              const Icon = config.icon;
 
               return (
                 <div
@@ -217,26 +204,10 @@ export function AdminOrders() {
                       disabled={updating[order.id]}
                       className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 disabled:opacity-50"
                     >
-                      <option value="pending">Pending</option>
-                      <option value="accepted">Accepted</option>
-                      <option value="rejected">Rejected</option>
+                      <option value="processing">Processing</option>
+                      <option value="on_way">On the way</option>
                       <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
                     </select>
-                    {order.status === "pending" && (
-                      <button
-                        onClick={() => handleStatusChange(order.id, "accepted")}
-                        disabled={updating[order.id]}
-                        className="inline-flex items-center justify-center gap-1 rounded-lg bg-ocean px-3 py-2 text-sm font-black text-white transition hover:bg-ocean/90 disabled:opacity-50"
-                      >
-                        {updating[order.id] ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="size-4" />
-                        )}
-                        Accept
-                      </button>
-                    )}
                   </div>
                 </div>
               );

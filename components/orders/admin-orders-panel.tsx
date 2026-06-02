@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock, X, Truck, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, Truck, Loader2 } from "lucide-react";
 import { listenToAllOrders, updateOrderStatus } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/orders";
 import { formatPrice } from "@/lib/utils";
 
 const statusConfig: Record<OrderStatus, { icon: any; color: string; text: string }> = {
-  pending: { icon: Clock, color: "bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400", text: "Pending" },
-  accepted: { icon: CheckCircle2, color: "bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400", text: "Accepted" },
-  rejected: { icon: X, color: "bg-red-50 text-red-700 dark:bg-red-500/20 dark:text-red-400", text: "Rejected" },
-  delivered: { icon: Truck, color: "bg-green-50 text-green-700 dark:bg-green-500/20 dark:text-green-400", text: "Delivered" },
-  cancelled: { icon: X, color: "bg-slate-50 text-slate-700 dark:bg-slate-500/20 dark:text-slate-400", text: "Cancelled" },
+  processing: { icon: Clock, color: "bg-amber-50 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400", text: "Processing" },
+  on_way: { icon: Truck, color: "bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400", text: "On the way" },
+  delivered: { icon: CheckCircle2, color: "bg-green-50 text-green-700 dark:bg-green-500/20 dark:text-green-400", text: "Delivered" },
 };
 
 export function AdminOrdersPanel() {
@@ -107,10 +105,10 @@ export function AdminOrdersPanel() {
                 </div>
 
                 <div className="mb-3 flex flex-wrap gap-2">
-                  {["pending", "accepted", "delivered"].map((status) => (
+                  {(["processing", "on_way", "delivered"] as OrderStatus[]).map((status) => (
                     <button
                       key={status}
-                      onClick={() => handleStatusChange(order.id, status as OrderStatus)}
+                      onClick={() => handleStatusChange(order.id, status)}
                       disabled={updating[order.id]}
                       className={`flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-bold transition ${
                         order.status === status
@@ -121,7 +119,7 @@ export function AdminOrdersPanel() {
                       {updating[order.id] && status === order.status ? (
                         <Loader2 className="size-3 animate-spin" />
                       ) : null}
-                      {status === "pending" ? "Pending" : status === "accepted" ? "Accept" : "Deliver"}
+                      {statusConfig[status].text}
                     </button>
                   ))}
                 </div>

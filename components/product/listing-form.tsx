@@ -4,6 +4,7 @@ import { CheckCircle2, ImagePlus, Loader2, Send, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { bangaloreColleges } from "@/lib/bangalore-colleges";
 import { categories } from "@/lib/data";
 import { createProduct } from "@/lib/firestore";
 import { uploadListingImage } from "@/lib/cloudinary-upload";
@@ -29,6 +30,11 @@ export function ListingForm() {
   const [imageStatus, setImageStatus] = useState<ImageStatus>("idle");
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [overallProgress, setOverallProgress] = useState(0);
+  const [listingCollegeName, setListingCollegeName] = useState(user?.collegeName ?? "");
+
+  useEffect(() => {
+    if (!listingCollegeName && user?.collegeName) setListingCollegeName(user.collegeName);
+  }, [listingCollegeName, user?.collegeName]);
 
   useEffect(() => {
     const nextPreviews = files.map((file) => ({
@@ -102,6 +108,13 @@ export function ListingForm() {
         return;
       }
 
+      const selectedCollegeName = String(formData.get("collegeName") || listingCollegeName || user?.collegeName || "").trim();
+      if (!selectedCollegeName) {
+        setFormMessage("Please select the college where this product should appear.", "error");
+        setLoading(false);
+        return;
+      }
+
       setImageStatus("uploading");
       setFormMessage(`Uploading ${files.length} image${files.length > 1 ? "s" : ""}...`, "info");
 
@@ -142,7 +155,7 @@ export function ListingForm() {
         sellerId: user?.uid ?? "demo-student",
         sellerName: user?.fullName ?? "CollegeCart Student",
         sellerAvatar: user?.avatarUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
-        collegeName: user?.collegeName ?? "Campus",
+        collegeName: selectedCollegeName,
         createdAt: now,
         updatedAt: now,
         savedCount: 0,
@@ -222,6 +235,22 @@ export function ListingForm() {
           <span className="text-sm font-black text-slate-700 dark:text-slate-200">Category</span>
           <select suppressHydrationWarning name="category" className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink dark:border-white/10 dark:bg-white/10 dark:text-white">
             {categories.map((category) => <option key={category.name}>{category.name}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-sm font-black text-slate-700 dark:text-slate-200">Seller College</span>
+          <select
+            suppressHydrationWarning
+            required
+            name="collegeName"
+            value={listingCollegeName}
+            onChange={(event) => setListingCollegeName(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-ink dark:border-white/10 dark:bg-white/10 dark:text-white"
+          >
+            <option value="">Select college</option>
+            {bangaloreColleges.map((college) => (
+              <option key={college.name} value={college.name}>{college.name}</option>
+            ))}
           </select>
         </label>
         <label className="block">
