@@ -116,11 +116,13 @@ export async function saveUserProfile(profile: UserProfile) {
 
 export async function uploadIdCardImage(userId: string, file: File): Promise<string> {
   try {
+    const folder = "collegecart/idcards";
     // Get auth signature from server
     console.log("🔐 Getting Cloudinary signature for ID card...");
     const signatureResponse = await fetch("/api/cloudinary-auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder }),
     });
 
     if (!signatureResponse.ok) {
@@ -138,8 +140,8 @@ export async function uploadIdCardImage(userId: string, file: File): Promise<str
     formData.append("file", file);
     formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "");
     formData.append("signature", signature);
-    formData.append("timestamp", timestamp);
-    formData.append("folder", "collegecart/idcards");
+    formData.append("timestamp", String(timestamp));
+    formData.append("folder", folder);
 
     console.log(`📤 Uploading ID card to Cloudinary: ${fileName}`);
     

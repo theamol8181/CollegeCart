@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { categories } from "@/lib/data";
 import { createProduct } from "@/lib/firestore";
-import { uploadToCloudinary } from "@/lib/cloudinary-upload";
+import { uploadListingImage } from "@/lib/cloudinary-upload";
 import type { ProductCategory, ProductCondition } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
@@ -108,15 +108,13 @@ export function ListingForm() {
       const imageUrls = await Promise.all(
         files.map(async (file, index) => {
           try {
-            return await uploadToCloudinary(file, "collegecart/listings", (progress) => {
-              setUploadProgress((prev) => ({
-                ...prev,
-                [index]: progress
-              }));
-              // Calculate overall progress
-              const progresses = Object.values({ ...uploadProgress, [index]: progress });
-              const avg = progresses.reduce((a, b) => a + b, 0) / progresses.length;
-              setOverallProgress(Math.round(avg));
+            return await uploadListingImage(file, "collegecart/listings", (progress) => {
+              setUploadProgress((prev) => {
+                const next = { ...prev, [index]: progress };
+                const total = files.reduce((sum, _file, fileIndex) => sum + (next[fileIndex] ?? 0), 0);
+                setOverallProgress(Math.round(total / files.length));
+                return next;
+              });
             });
           } catch (error) {
             console.error(`Failed to upload image ${index + 1}:`, error);
@@ -201,7 +199,7 @@ export function ListingForm() {
       console.error("Upload error:", error);
       setImageStatus("error");
       const errorMsg = error instanceof Error ? error.message : "Image upload failed";
-      setFormMessage(`❌ ${errorMsg}. Please check browser console and try again.`, "error");
+      setFormMessage(`${errorMsg}. Please try a smaller photo or try again.`, "error");
     } finally {
       setLoading(false);
     }
