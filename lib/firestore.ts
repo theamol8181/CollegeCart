@@ -116,48 +116,50 @@ export async function saveUserProfile(profile: UserProfile) {
 
 export async function uploadIdCardImage(userId: string, file: File): Promise<string> {
   try {
-    // Get auth token from server
-    console.log("🔐 Fetching ImageKit auth token for ID card...");
-    const authResponse = await fetch("/api/imagekit-auth");
-    
-    if (!authResponse.ok) {
-      const authError = await authResponse.json();
-      console.error("Auth error:", authError);
-      throw new Error(`Auth failed: ${authError.error}`);
+    // Get auth signature from server
+    console.log("🔐 Getting Cloudinary signature for ID card...");
+    const signatureResponse = await fetch("/api/cloudinary-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!signatureResponse.ok) {
+      const error = await signatureResponse.json();
+      throw new Error(`Signature generation failed: ${error.message}`);
     }
 
-    const { token, expire, signature, publicKey } = await authResponse.json();
-    console.log("✅ Auth token received for ID card");
+    const { signature, timestamp } = await signatureResponse.json();
+    console.log("✅ Signature received for ID card");
 
     const fileExt = file.name.split(".").pop() || "jpg";
-    const fileName = `idcards/${userId}_${Date.now()}.${fileExt}`;
+    const fileName = `${userId}_${Date.now()}.${fileExt}`;
     
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("publicKey", publicKey);
-    formData.append("token", token);
-    formData.append("expire", String(expire));
+    formData.append("api_key", process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "");
     formData.append("signature", signature);
-    formData.append("fileName", fileName);
-    formData.append("folder", "/collegecart/idcards");
-    formData.append("useUniqueFileName", "false");
+    formData.append("timestamp", timestamp);
+    formData.append("folder", "collegecart/idcards");
+
+    console.log(`📤 Uploading ID card to Cloudinary: ${fileName}`);
     
-    console.log(`📤 Uploading ID card to ImageKit: ${fileName}`);
-    
-    const response = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("ImageKit ID card upload error:", errorData);
-      throw new Error(`ID card upload failed: ${errorData.message || response.statusText}`);
+      console.error("Cloudinary ID card upload error:", errorData);
+      throw new Error(`ID card upload failed: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    console.log(`✅ ID card uploaded to ImageKit: ${fileName}`);
-    return data.url as string;
+    console.log(`✅ ID card uploaded to Cloudinary: ${fileName}`);
+    return data.secure_url as string;
   } catch (error) {
     console.error("❌ Error uploading ID card:", error);
     throw error;
