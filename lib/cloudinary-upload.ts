@@ -10,6 +10,7 @@ export async function uploadToCloudinary(
   try {
     console.log("📤 Starting Cloudinary upload");
     console.log("File:", file.name, "Size:", file.size, "Type:", file.type);
+    console.log("Cloud Name:", process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
     onProgress?.(10);
 
     // Validate file size (Cloudinary limit: 500MB)
@@ -26,6 +27,7 @@ export async function uploadToCloudinary(
 
     if (!signatureResponse.ok) {
       const error = await signatureResponse.json();
+      console.error("Signature error:", error);
       throw new Error(`Signature generation failed: ${error.message}`);
     }
 
@@ -42,23 +44,26 @@ export async function uploadToCloudinary(
     formData.append("folder", folder);
 
     console.log("📝 Upload folder:", folder);
+    console.log("API Key present:", !!process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY);
     onProgress?.(30);
 
     // Upload to Cloudinary
-    console.log("⏳ Uploading to Cloudinary...");
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    console.log("⏳ Uploading to Cloudinary...", cloudName);
+    
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+    console.log("Upload URL:", uploadUrl);
+    
+    const response = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
 
     onProgress?.(70);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Cloudinary upload error:", errorData);
+      console.error("Cloudinary upload error response:", errorData);
       throw new Error(`Upload failed: ${errorData.error?.message || response.statusText}`);
     }
 
@@ -78,6 +83,8 @@ export async function uploadToCloudinary(
         errorMessage = error.message;
       } else if (error.message.includes("Signature")) {
         errorMessage = "Failed to generate upload signature - check server configuration";
+      } else if (error.message.includes("disabled")) {
+        errorMessage = "Cloudinary account issue - contact support or check account settings";
       } else {
         errorMessage = error.message;
       }

@@ -1,129 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, Clock3, Package, Truck, XCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle2, Clock3, Package, Truck, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { listenToAllOrders, updateOrderStatus } from "@/lib/orders";
+import type { Order, OrderStatus } from "@/lib/orders";
 
-interface Order {
-  id: string;
-  orderNumber: string;
-  buyer: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  seller: {
-    name: string;
-    id: string;
-  };
-  product: {
-    name: string;
-    price: number;
-    image: string;
-  };
-  quantity: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
-  createdAt: Date;
-  updatedAt: Date;
-  deliveryAddress?: string;
-  trackingNumber?: string;
-}
-
-// Mock data for demonstration
-const mockOrders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    buyer: {
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+91 98765 43210",
-    },
-    seller: {
-      name: "Alice Smith",
-      id: "seller-1",
-    },
-    product: {
-      name: "Used Laptop",
-      price: 25000,
-      image: "/api/placeholder/100/100",
-    },
-    quantity: 1,
-    status: "confirmed",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    deliveryAddress: "Bangalore, Karnataka",
-    trackingNumber: "TRK-123456",
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-002",
-    buyer: {
-      name: "Jane Smith",
-      email: "jane@example.com",
-      phone: "+91 87654 32109",
-    },
-    seller: {
-      name: "Bob Johnson",
-      id: "seller-2",
-    },
-    product: {
-      name: "Study Notes",
-      price: 500,
-      image: "/api/placeholder/100/100",
-    },
-    quantity: 1,
-    status: "pending",
-    createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
-  },
-  {
-    id: "3",
-    orderNumber: "ORD-003",
-    buyer: {
-      name: "Mike Wilson",
-      email: "mike@example.com",
-      phone: "+91 76543 21098",
-    },
-    seller: {
-      name: "Carol White",
-      id: "seller-3",
-    },
-    product: {
-      name: "Books Bundle",
-      price: 1500,
-      image: "/api/placeholder/100/100",
-    },
-    quantity: 2,
-    status: "shipped",
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    deliveryAddress: "Mumbai, Maharashtra",
-    trackingNumber: "TRK-654321",
-  },
-];
-
-const statusConfig = {
+const statusConfig: Record<OrderStatus, {
+  icon: any;
+  label: string;
+  color: string;
+  dotColor: string;
+}> = {
   pending: {
     icon: Clock3,
     label: "Pending",
     color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     dotColor: "bg-amber-500",
   },
-  confirmed: {
+  accepted: {
     icon: CheckCircle2,
-    label: "Confirmed",
+    label: "Accepted",
     color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     dotColor: "bg-blue-500",
   },
-  shipped: {
-    icon: Truck,
-    label: "Shipped",
-    color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-    dotColor: "bg-purple-500",
+  rejected: {
+    icon: XCircle,
+    label: "Rejected",
+    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    dotColor: "bg-red-500",
   },
   delivered: {
-    icon: Package,
+    icon: Truck,
     label: "Delivered",
     color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     dotColor: "bg-green-500",
@@ -131,34 +39,50 @@ const statusConfig = {
   cancelled: {
     icon: XCircle,
     label: "Cancelled",
-    color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    dotColor: "bg-red-500",
+    color: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
+    dotColor: "bg-slate-500",
   },
 };
 
 export function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [updating, setUpdating] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    console.log("📦 Setting up all orders listener for admin");
+    const unsubscribe = listenToAllOrders((newOrders) => {
+      setOrders(newOrders);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredOrders = orders.filter((order) => {
     const matchesStatus = filterStatus === "all" || order.status === filterStatus;
     const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.buyer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.seller.name.toLowerCase().includes(searchQuery.toLowerCase());
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.buyerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.sellerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.productName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
-  const updateOrderStatus = (orderId: string, newStatus: Order["status"]) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId
-          ? { ...order, status: newStatus, updatedAt: new Date() }
-          : order
-      )
-    );
-  };
+  async function handleStatusChange(orderId: string, newStatus: OrderStatus) {
+    setUpdating((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      console.log("✅ Order status updated");
+    } catch (error) {
+      console.error("❌ Error updating order:", error);
+      alert("Failed to update order");
+    } finally {
+      setUpdating((prev) => ({ ...prev, [orderId]: false }));
+    }
+  }
 
   const stats = [
     {
@@ -172,9 +96,9 @@ export function AdminOrders() {
       color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     },
     {
-      label: "Shipped",
-      value: String(orders.filter((o) => o.status === "shipped").length),
-      color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+      label: "Accepted",
+      value: String(orders.filter((o) => o.status === "accepted").length),
+      color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     },
     {
       label: "Delivered",
@@ -182,6 +106,14 @@ export function AdminOrders() {
       color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <p className="text-slate-500">Loading orders...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -202,13 +134,13 @@ export function AdminOrders() {
       <div className="flex flex-col gap-4 rounded-[2rem] bg-white p-5 shadow-premium ring-1 ring-slate-200 dark:bg-white/[0.08] dark:ring-white/10 md:flex-row md:items-center md:justify-between">
         <input
           type="text"
-          placeholder="Search by order number, buyer, or seller..."
+          placeholder="Search by order ID, buyer, seller, or product..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold placeholder-slate-500 dark:border-white/10 dark:bg-white/5 dark:placeholder-slate-400"
         />
         <div className="flex flex-wrap gap-2">
-          {["all", "pending", "confirmed", "shipped", "delivered", "cancelled"].map(
+          {["all", "pending", "accepted", "rejected", "delivered", "cancelled"].map(
             (status) => (
               <button
                 key={status}
@@ -249,27 +181,22 @@ export function AdminOrders() {
                     <div className="flex items-center gap-3">
                       <div className="flex-1">
                         <p className="font-black text-ink dark:text-white">
-                          {order.orderNumber}
+                          {order.productName}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                          {order.product.name} × {order.quantity}
+                          By: {order.sellerName} → {order.buyerName}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                          By: {order.seller.name} → {order.buyer.name}
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Order ID: {order.id.slice(0, 8)}
                         </p>
-                        {order.trackingNumber && (
-                          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                            📦 Tracking: {order.trackingNumber}
-                          </p>
-                        )}
                       </div>
                     </div>
                     <div className="text-sm">
                       <p className="font-black text-ink dark:text-white">
-                        {formatPrice(order.product.price * order.quantity)}
+                        {formatPrice(order.productPrice)}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {order.createdAt.toLocaleDateString()}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -285,20 +212,29 @@ export function AdminOrders() {
                     <select
                       value={order.status}
                       onChange={(e) =>
-                        updateOrderStatus(order.id, e.target.value as Order["status"])
+                        handleStatusChange(order.id, e.target.value as OrderStatus)
                       }
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                      disabled={updating[order.id]}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 disabled:opacity-50"
                     >
                       <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="shipped">Shipped</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
                     {order.status === "pending" && (
-                      <button className="inline-flex items-center justify-center gap-1 rounded-lg bg-ocean px-3 py-2 text-sm font-black text-white transition hover:bg-ocean/90">
-                        <CheckCircle2 className="size-4" />
-                        Confirm
+                      <button
+                        onClick={() => handleStatusChange(order.id, "accepted")}
+                        disabled={updating[order.id]}
+                        className="inline-flex items-center justify-center gap-1 rounded-lg bg-ocean px-3 py-2 text-sm font-black text-white transition hover:bg-ocean/90 disabled:opacity-50"
+                      >
+                        {updating[order.id] ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="size-4" />
+                        )}
+                        Accept
                       </button>
                     )}
                   </div>
