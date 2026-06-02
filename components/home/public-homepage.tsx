@@ -26,6 +26,7 @@ import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { useMarketplaceStore } from "@/stores/marketplace-store";
+import { ProductImageSlider } from "@/components/product/product-image-slider";
 
 const categoryTiles = [
   { name: "Books", icon: BookOpen, color: "bg-ocean/10 text-ocean" },
@@ -204,7 +205,7 @@ Thank you.`;
           <article key={product.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md dark:border-white/10 dark:bg-white/[0.08]">
             <Link href={`/product/${product.id}`} className="block" aria-label={`Open details for ${product.name}`}>
               <div className="relative aspect-[4/3] bg-slate-100">
-                <Image src={product.images[0]} alt={product.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover" />
+                <ProductImageSlider images={product.images} alt={product.name} sizes="(max-width: 768px) 50vw, 25vw" />
                 <span className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-ink">{product.condition}</span>
               </div>
               <div className="space-y-3 p-4">

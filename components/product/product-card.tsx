@@ -7,6 +7,7 @@ import { MapPin, Phone } from "lucide-react";
 import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
+import { ProductImageSlider } from "@/components/product/product-image-slider";
 
 export function ProductCard({ product }: { product: Product }) {
   function openWhatsApp() {
@@ -34,13 +35,11 @@ Thank you.`;
     >
       <Link href={`/product/${product.id}`} className="block" aria-label={`Open details for ${product.name}`}>
         <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-          <Image
-            src={product.images[0]}
+          <ProductImageSlider
+            images={product.images}
             alt={product.name}
-            fill
-            unoptimized={product.images[0].startsWith("data:")}
             sizes="(max-width: 768px) 100vw, 25vw"
-            className="object-cover transition duration-500 group-hover:scale-110"
+            imageClassName="group-hover:scale-105"
           />
           <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-ink backdrop-blur dark:bg-night/90 dark:text-white">
             {product.condition}

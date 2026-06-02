@@ -8,7 +8,12 @@ import { auth } from "@/lib/firebase";
 import { getUserProfile, listenToProducts, listenToUsers, saveUserProfile, listenToCurrentUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 import { useThemeStore } from "@/stores/theme-store";
-import { useMarketplaceStore } from "@/stores/marketplace-store";
+import {
+  DELETED_PRODUCTS_STORAGE_KEY,
+  PRODUCTS_STORAGE_KEY,
+  PRODUCT_STATUS_OVERRIDES_STORAGE_KEY,
+  useMarketplaceStore
+} from "@/stores/marketplace-store";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +34,21 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     hydrateProducts();
     return listenToProducts(setProducts);
   }, [hydrateProducts, setProducts]);
+
+  useEffect(() => {
+    function refreshMarketplaceFromStorage(event: StorageEvent) {
+      if (
+        event.key === PRODUCTS_STORAGE_KEY ||
+        event.key === DELETED_PRODUCTS_STORAGE_KEY ||
+        event.key === PRODUCT_STATUS_OVERRIDES_STORAGE_KEY
+      ) {
+        hydrateProducts();
+      }
+    }
+
+    window.addEventListener("storage", refreshMarketplaceFromStorage);
+    return () => window.removeEventListener("storage", refreshMarketplaceFromStorage);
+  }, [hydrateProducts]);
 
   // Listen to users from Firebase (for admin to see pending approvals)
   useEffect(() => {

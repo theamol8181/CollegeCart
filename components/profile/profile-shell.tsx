@@ -163,7 +163,11 @@ function ListingTable({ products }: { products: ReturnType<typeof useMarketplace
             onClick={() => {
               if (confirm("Are you sure you want to delete this product?")) {
                 removeProduct(product.id);
-                void deleteProduct(product.id);
+                if (!product.id.startsWith("local-")) {
+                  void deleteProduct(product.id).catch((error) => {
+                    console.error("Cloud delete failed:", error);
+                  });
+                }
               }
             }}
             className="inline-flex items-center gap-2 rounded-full bg-coral/10 px-3 py-1 text-xs font-black text-coral transition hover:bg-coral/20"

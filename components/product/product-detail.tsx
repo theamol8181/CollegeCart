@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { MapPin, Phone, ShieldCheck } from "lucide-react";
-import { COLLEGECART_WHATSAPP_DISPLAY, COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
+import { COLLEGECART_WHATSAPP_NUMBER } from "@/lib/contact";
 import type { Product } from "@/lib/types";
 import { formatPrice, timeAgo } from "@/lib/utils";
 import { ProductGrid } from "@/components/product/product-grid";
@@ -79,8 +79,11 @@ Thank you.`;
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-mint px-4 py-4 text-sm font-black text-ink shadow-glow transition hover:bg-emerald-300"
             >
               <Phone className="size-5" />
-              Buy Now - {COLLEGECART_WHATSAPP_DISPLAY}
+              Buy Now
             </button>
+            <p className="mt-3 rounded-2xl bg-white/75 px-4 py-3 text-center text-xs font-bold leading-5 text-slate-600 ring-1 ring-slate-200 dark:bg-white/10 dark:text-slate-300 dark:ring-white/10">
+              Meet and pay: Rs 0. Campus delivery: Rs 60.
+            </p>
           </div>
         </aside>
       </section>

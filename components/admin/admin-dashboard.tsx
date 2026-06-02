@@ -7,7 +7,7 @@ import { demoUser } from "@/lib/data";
 import { deleteProduct, updateProductStatus } from "@/lib/firestore";
 import { formatPrice } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
-import { useMarketplaceStore } from "@/stores/marketplace-store";
+import { PRODUCTS_STORAGE_KEY, useMarketplaceStore } from "@/stores/marketplace-store";
 import { AdminDeliveryRequests } from "./admin-delivery-requests";
 import { AdminOrders } from "./admin-orders";
 import { ListingForm } from "@/components/product/listing-form";
@@ -38,7 +38,7 @@ export function AdminDashboard() {
         console.log(`✅ Firebase updated! Clearing cache...`);
         // Clear localStorage to force fresh sync from Firebase
         if (typeof window !== "undefined") {
-          window.localStorage.removeItem("collegecart-products");
+          window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
           console.log(`✅ Cache cleared! Listener will re-sync from Firebase...`);
         }
         // Update local store after Firebase is updated successfully
@@ -65,7 +65,7 @@ export function AdminDashboard() {
         console.log(`✅ Firebase updated! Clearing cache...`);
         // Clear localStorage to force fresh sync from Firebase
         if (typeof window !== "undefined") {
-          window.localStorage.removeItem("collegecart-products");
+          window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
           console.log(`✅ Cache cleared! Listener will re-sync from Firebase...`);
         }
         // Update local store after Firebase is updated successfully
@@ -87,15 +87,13 @@ export function AdminDashboard() {
     if (!productId.startsWith("local-")) {
       try {
         await updateProductStatus(productId, "sold");
-        if (typeof window !== "undefined") window.localStorage.removeItem("collegecart-products");
-        markProductSold(productId);
       } catch (error) {
         console.error("Failed to mark product out of stock:", error);
-        alert("Error marking product out of stock: " + (error instanceof Error ? error.message : String(error)));
+        alert("Out of stock saved on this device. Cloud update was blocked, so publish the updated Firebase rules for everyone.");
       }
-    } else {
-      markProductSold(productId);
     }
+
+    markProductSold(productId);
   }
 
   async function approveUserWithRefresh(uid: string) {
@@ -122,8 +120,27 @@ export function AdminDashboard() {
     if (!confirm("Delete this product permanently?")) return;
 
     try {
+      let cloudDeleteBlocked = false;
+
+      if (!productId.startsWith("local-")) {
+        try {
+          await deleteProduct(productId);
+        } catch (deleteError) {
+          cloudDeleteBlocked = true;
+          console.error("Cloud delete failed, trying to hide listing:", deleteError);
+          try {
+            await updateProductStatus(productId, "rejected");
+          } catch (statusError) {
+            console.error("Cloud hide failed:", statusError);
+          }
+        }
+      }
+
       deleteProductLocal(productId);
-      if (!productId.startsWith("local-")) await deleteProduct(productId);
+
+      if (cloudDeleteBlocked) {
+        alert("Listing removed here. Cloud delete was blocked, so publish the updated Firebase rules for permanent server delete.");
+      }
     } catch (error) {
       console.error("Failed to delete product:", error);
       alert("Error deleting product: " + (error instanceof Error ? error.message : String(error)));

@@ -3,17 +3,85 @@
 import { create } from "zustand";
 import type { Product, ProductCategory, ProductCondition } from "@/lib/types";
 
-const PRODUCTS_STORAGE_KEY = "collegecart-products";
-const REVIEW_STATUSES = new Set(["pending", "approved", "rejected", "sold"]);
+export const PRODUCTS_STORAGE_KEY = "collegecart-products";
+export const DELETED_PRODUCTS_STORAGE_KEY = "collegecart-deleted-products";
+export const PRODUCT_STATUS_OVERRIDES_STORAGE_KEY = "collegecart-product-status-overrides";
 const MAX_STORAGE_ITEMS = 50;
+const MAX_DELETED_ITEMS = 200;
+type ProductStatus = NonNullable<Product["status"]>;
 
-function keepRealListings(products: Product[]) {
+function normalizeStatus(status: Product["status"]): ProductStatus {
+  return status === "rejected" || status === "sold" ? status : "approved";
+}
+
+function getDeletedProductIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const stored = window.localStorage.getItem(DELETED_PRODUCTS_STORAGE_KEY);
+    if (!stored) return new Set<string>();
+    const ids = JSON.parse(stored);
+    if (!Array.isArray(ids)) return new Set<string>();
+    return new Set(ids.filter((id): id is string => typeof id === "string" && id.length > 0));
+  } catch {
+    window.localStorage.removeItem(DELETED_PRODUCTS_STORAGE_KEY);
+    return new Set<string>();
+  }
+}
+
+function rememberDeletedProduct(productId: string) {
+  if (typeof window === "undefined") return;
+  const ids = Array.from(getDeletedProductIds());
+  const next = [...ids.filter((id) => id !== productId), productId].slice(-MAX_DELETED_ITEMS);
+  safeSetItem(DELETED_PRODUCTS_STORAGE_KEY, JSON.stringify(next));
+}
+
+function getStatusOverrides() {
+  if (typeof window === "undefined") return {} as Record<string, ProductStatus>;
+
+  try {
+    const stored = window.localStorage.getItem(PRODUCT_STATUS_OVERRIDES_STORAGE_KEY);
+    if (!stored) return {} as Record<string, ProductStatus>;
+    const parsed = JSON.parse(stored) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed).filter((entry): entry is [string, ProductStatus] =>
+        typeof entry[0] === "string" &&
+        (entry[1] === "approved" || entry[1] === "rejected" || entry[1] === "sold")
+      )
+    );
+  } catch {
+    window.localStorage.removeItem(PRODUCT_STATUS_OVERRIDES_STORAGE_KEY);
+    return {} as Record<string, ProductStatus>;
+  }
+}
+
+function saveStatusOverrides(overrides: Record<string, ProductStatus>) {
+  safeSetItem(PRODUCT_STATUS_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+}
+
+function rememberStatusOverride(productId: string, status: ProductStatus) {
+  const overrides = getStatusOverrides();
+  saveStatusOverrides({ ...overrides, [productId]: status });
+}
+
+function clearStatusOverride(productId: string) {
+  const overrides = getStatusOverrides();
+  if (!(productId in overrides)) return;
+  delete overrides[productId];
+  saveStatusOverrides(overrides);
+}
+
+function keepRealListings(
+  products: Product[],
+  deletedIds = getDeletedProductIds(),
+  statusOverrides = getStatusOverrides()
+) {
   // Keep all products - don't filter by status here, let listeners and UI handle filtering
   return products
-    .filter((product) => product.id && !product.id.startsWith("temp-"))
+    .filter((product) => product.id && !product.id.startsWith("temp-") && !deletedIds.has(product.id))
     .map((product) => ({
       ...product,
-      status: product.status === "rejected" || product.status === "sold" ? product.status : "approved" as const
+      status: statusOverrides[product.id] ?? normalizeStatus(product.status)
     }));
 }
 
@@ -23,6 +91,11 @@ function safeSetItem(key: string, value: string) {
     window.localStorage.setItem(key, value);
   } catch (error) {
     if (error instanceof Error && error.message.includes("quota")) {
+      if (key !== PRODUCTS_STORAGE_KEY) {
+        window.localStorage.removeItem(key);
+        return;
+      }
+
       // Clear old products to make space
       console.warn("Storage quota exceeded, clearing old products...");
       try {
@@ -72,11 +145,13 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   savedIds: [],
   setProducts: (products) =>
     set((state) => {
-      const realListings = keepRealListings(products);
+      const deletedIds = getDeletedProductIds();
+      const statusOverrides = getStatusOverrides();
+      const realListings = keepRealListings(products, deletedIds, statusOverrides);
       const remoteIds = new Set(realListings.map((product) => product.id));
       // Only keep local-* products that aren't in Firebase
       const localListings = state.products.filter(
-        (product) => product.id.startsWith("local-") && !remoteIds.has(product.id)
+        (product) => product.id.startsWith("local-") && !remoteIds.has(product.id) && !deletedIds.has(product.id)
       );
       
       // Merge: Firebase products (source of truth) + local products
@@ -103,12 +178,17 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   },
   addProduct: (product) =>
     set((state) => {
+      const deletedIds = getDeletedProductIds();
+      deletedIds.delete(product.id);
+      safeSetItem(DELETED_PRODUCTS_STORAGE_KEY, JSON.stringify(Array.from(deletedIds)));
+      clearStatusOverride(product.id);
       const updated = keepRealListings([{ ...product, status: product.status ?? "approved" }, ...state.products]);
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   approveProduct: (productId) =>
     set((state) => {
+      clearStatusOverride(productId);
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "approved" as const } : product
       );
@@ -117,6 +197,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     }),
   rejectProduct: (productId) =>
     set((state) => {
+      rememberStatusOverride(productId, "rejected");
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "rejected" as const } : product
       );
@@ -125,6 +206,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     }),
   markProductSold: (productId) =>
     set((state) => {
+      rememberStatusOverride(productId, "sold");
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "sold" as const } : product
       );
@@ -133,12 +215,14 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
     }),
   deleteProductLocal: (productId) =>
     set((state) => {
+      rememberDeletedProduct(productId);
       const updated = state.products.filter((product) => product.id !== productId);
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   removeProduct: (productId) =>
     set((state) => {
+      rememberDeletedProduct(productId);
       const updated = state.products.filter((product) => product.id !== productId);
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
