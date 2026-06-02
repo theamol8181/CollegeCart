@@ -35,6 +35,8 @@ function toIsoDate(value: unknown) {
 }
 
 function toProduct(id: string, data: Record<string, unknown>): Product {
+  const status = data.status === "rejected" || data.status === "sold" ? data.status : "approved";
+
   return {
     ...data,
     id,
@@ -42,7 +44,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     images: Array.isArray(data.images) ? data.images : [],
     savedCount: typeof data.savedCount === "number" ? data.savedCount : 0,
     views: typeof data.views === "number" ? data.views : 0,
-    status: (data.status as Product["status"]) ?? "pending"
+    status
   } as Product;
 }
 
@@ -65,9 +67,9 @@ export function listenToProducts(onChange: (products: Product[]) => void) {
           return product;
         });
         
-        // Sort by status: approved first, then pending, then others
+        // Product listings go live immediately. Keep rejected/sold below live listings.
         const sorted = products.sort((a, b) => {
-          const statusOrder = { approved: 0, pending: 1, rejected: 2, sold: 3 };
+          const statusOrder = { approved: 0, rejected: 1, sold: 2, pending: 3 };
           const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 4;
           const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 4;
           return aOrder - bOrder;
@@ -197,7 +199,7 @@ export async function createProduct(product: Product) {
       updatedAt: product.updatedAt ?? new Date().toISOString(),
       savedCount: 0,
       views: 0,
-      status: product.status ?? "pending"
+      status: product.status === "rejected" || product.status === "sold" ? product.status : "approved"
     } as unknown as Record<string, unknown>);
 
     console.log("✅ SAVING PRODUCT TO FIREBASE:", {

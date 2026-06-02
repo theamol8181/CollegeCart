@@ -12,7 +12,7 @@ export default function SellPage() {
         <p className="text-sm font-black uppercase tracking-[0.18em] text-ocean">Want to sell?</p>
         <h1 className="mt-2 text-4xl font-black tracking-tight text-ink dark:text-white">Fill out our seller form</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-          Tell us about your product. After verification, the CollegeCart team will review and manually publish your listing.
+          Tell us about your product. Once you submit, the listing can appear live on CollegeCart.
         </p>
       </div>
       
@@ -20,7 +20,7 @@ export default function SellPage() {
         <div className="mb-6 rounded-2xl border border-ocean/30 bg-ocean/5 p-6">
           <p className="text-lg font-bold text-slate-800 dark:text-slate-100">📋 Seller Form</p>
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Click the button below to open our seller form. Share details about your product, and our team will review your submission within 24 hours.
+            Click the button below to open our seller form and share details about your product.
           </p>
         </div>
 
@@ -39,8 +39,8 @@ export default function SellPage() {
             <p className="text-sm font-bold text-slate-700 dark:text-slate-200">✅ What happens next?</p>
             <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
               <li>1. You submit your product details via the form</li>
-              <li>2. Our team reviews your submission</li>
-              <li>3. Once approved, your listing appears on CollegeCart</li>
+              <li>2. Your listing is prepared for CollegeCart</li>
+              <li>3. Your listing appears on CollegeCart</li>
               <li>4. Students can contact you to purchase</li>
             </ul>
           </div>

@@ -147,7 +147,7 @@ export function ListingForm() {
         updatedAt: now,
         savedCount: 0,
         views: 0,
-        status: "pending" as const
+        status: "approved" as const
       };
 
       try {
@@ -158,11 +158,11 @@ export function ListingForm() {
         addProduct(finalProduct);
         
         if (savedId) {
-          setFormMessage("✅ Listing published! It will appear after admin approval.", "success");
+          setFormMessage("✅ Listing published! Your product is live now.", "success");
           setTimeout(() => router.push("/profile"), 1500);
         } else {
           setFormMessage(
-            "✅ Listing saved locally. It will sync to cloud when online.",
+            "✅ Listing published locally. It will sync to cloud when online.",
             "success"
           );
           setTimeout(() => router.push("/profile"), 1500);
@@ -183,7 +183,7 @@ export function ListingForm() {
           );
         } else if (errorMsg.includes("Permission")) {
           setFormMessage(
-            "✅ Listing saved locally. Admin will review it when you sync.",
+            "✅ Listing published locally. It will sync when cloud access is available.",
             "success"
           );
         } else {

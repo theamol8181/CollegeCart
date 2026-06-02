@@ -45,7 +45,7 @@ export function DashboardShell() {
       <section className="rounded-[2rem] border-2 border-ocean/30 bg-ocean/5 p-6">
         <h2 className="text-2xl font-black text-ink dark:text-white">📢 MVP Update</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-          In our MVP, all product listings are managed manually by the CollegeCart team. To sell your product, please fill out our <a href="https://docs.google.com/forms/d/e/1FAIpQLSe5G3l8WdYPI9DLH7fWN2SLWseY2ZtFxSiL8JN_QU3voCAXIA/viewform?usp=publish-editor" target="_blank" rel="noopener noreferrer" className="font-bold text-ocean hover:underline">seller form</a>. Our team will review and publish your listing.
+          Product listings now go live immediately after submission. To sell your product, open the Sell Product page, add the details, and your card will appear on CollegeCart.
         </p>
       </section>
 
@@ -139,7 +139,7 @@ export function DashboardShell() {
 
       <section className="grid gap-5 lg:grid-cols-2">
         <DashboardList title="Saved Items" products={savedItems} empty="You haven't saved any items yet." />
-        <DashboardList title="My Listings" products={myProducts} empty="Add a product from the Sell page. It will go live after admin approval." />
+        <DashboardList title="My Listings" products={myProducts} empty="Add a product from the Sell page. It will go live immediately." />
       </section>
     </div>
   );

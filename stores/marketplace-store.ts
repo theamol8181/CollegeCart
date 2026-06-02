@@ -9,7 +9,12 @@ const MAX_STORAGE_ITEMS = 50;
 
 function keepRealListings(products: Product[]) {
   // Keep all products - don't filter by status here, let listeners and UI handle filtering
-  return products.filter((product) => product.id && !product.id.startsWith("temp-"));
+  return products
+    .filter((product) => product.id && !product.id.startsWith("temp-"))
+    .map((product) => ({
+      ...product,
+      status: product.status === "rejected" || product.status === "sold" ? product.status : "approved" as const
+    }));
 }
 
 function safeSetItem(key: string, value: string) {
@@ -97,7 +102,7 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
   },
   addProduct: (product) =>
     set((state) => {
-      const updated = keepRealListings([{ ...product, status: product.status ?? "pending" }, ...state.products]);
+      const updated = keepRealListings([{ ...product, status: product.status ?? "approved" }, ...state.products]);
       safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),

@@ -15,7 +15,7 @@ export default function SupportPage() {
         <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 space-y-1 mb-4">
           <li>Account issues</li>
           <li>Login problems</li>
-          <li>Listing approval requests</li>
+          <li>Listing publish issues</li>
           <li>Reporting suspicious users</li>
           <li>Product listing errors</li>
           <li>Verification issues</li>

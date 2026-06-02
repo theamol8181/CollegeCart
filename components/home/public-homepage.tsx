@@ -41,7 +41,7 @@ const categoryTiles = [
 
 const trustItems = [
   { title: "Verified Students", body: "Profiles are built around college identity and safe campus trade.", icon: BadgeCheck },
-  { title: "Safe Marketplace", body: "Admin review keeps pending listings away from buyers until approved.", icon: ShieldCheck },
+  { title: "Safe Marketplace", body: "Verified student profiles and reporting tools help keep campus trading trusted.", icon: ShieldCheck },
   { title: "Meet Locally", body: "Buy and sell near hostels, libraries, departments, and campus gates.", icon: MapPin },
   { title: "Affordable Student Deals", body: "Used books, calculators, cycles, and hostel items at student prices.", icon: WalletCards }
 ];

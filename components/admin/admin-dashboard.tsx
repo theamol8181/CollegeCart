@@ -24,7 +24,7 @@ export function AdminDashboard() {
   const stats = [
     { label: "Total Users", value: String(studentUsers.length), icon: UsersRound, color: "bg-ocean/10 text-ocean" },
     { label: "User Listings", value: String(reviewProducts.length), icon: Shield, color: "bg-mint/12 text-emerald-600" },
-    { label: "Pending Review", value: String(pending.length + pendingUsers.length), icon: Clock3, color: "bg-sun/20 text-amber-700" },
+    { label: "Pending Accounts", value: String(pendingUsers.length), icon: Clock3, color: "bg-sun/20 text-amber-700" },
     { label: "Reported Listings", value: String(rejected.length), icon: Flag, color: "bg-coral/10 text-coral" }
   ];
 
@@ -190,7 +190,7 @@ export function AdminDashboard() {
 
       <section className="overflow-hidden rounded-[2rem] bg-white shadow-premium ring-1 ring-slate-200 dark:bg-white/[0.08] dark:ring-white/10">
         <div className="border-b border-slate-200 p-5 dark:border-white/10">
-          <h2 className="text-xl font-black text-ink dark:text-white">Products waiting for review</h2>
+          <h2 className="text-xl font-black text-ink dark:text-white">Live listing moderation</h2>
         </div>
         <div className="divide-y divide-slate-200 dark:divide-white/10">
           {pending.length ? (
@@ -227,7 +227,7 @@ export function AdminDashboard() {
               </div>
             ))
           ) : (
-            <p className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-300">No pending product reviews.</p>
+            <p className="p-5 text-sm font-semibold text-slate-500 dark:text-slate-300">Product approval is disabled. New listings go live immediately.</p>
           )}
         </div>
       </section>
