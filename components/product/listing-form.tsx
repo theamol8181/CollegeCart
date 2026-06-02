@@ -152,7 +152,7 @@ export function ListingForm() {
 
       try {
         setFormMessage("Saving to cloud...", "info");
-        const savedId = await createProduct(product);
+        const savedId = await withTimeout(createProduct(product), 12_000, "Cloud save timed out");
         
         const finalProduct = savedId ? { ...product, id: savedId } : product;
         addProduct(finalProduct);
@@ -348,6 +348,17 @@ function messageClass(type: MessageType) {
 function formatFileSize(size: number) {
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
 }
 
 function Field({ name, label, placeholder, type = "text" }: { name: string; label: string; placeholder: string; type?: string }) {

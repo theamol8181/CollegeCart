@@ -3,6 +3,11 @@ import { fileToCompressedDataUrl } from "@/lib/image-fallback";
 
 export type UploadProgressCallback = (progress: number) => void;
 
+const CLOUDINARY_TIMEOUT_MS = 20_000;
+const FIREBASE_STORAGE_TIMEOUT_MS = 12_000;
+const SIGNATURE_TIMEOUT_MS = 8_000;
+const CLOUDINARY_UPLOAD_TIMEOUT_MS = 18_000;
+
 type CloudinaryAuthResponse = {
   apiKey?: string;
   cloudName?: string;
@@ -25,26 +30,48 @@ export async function uploadListingImage(
   folder = "collegecart/listings",
   onProgress?: UploadProgressCallback
 ): Promise<string> {
+  let activeStage = 1;
+
   try {
-    return await uploadToCloudinary(file, folder, (progress) => onProgress?.(Math.min(progress, 82)));
+    const cloudinaryUrl = await withTimeout(
+      uploadToCloudinary(file, folder, (progress) => {
+        if (activeStage === 1) onProgress?.(Math.min(progress, 82));
+      }),
+      CLOUDINARY_TIMEOUT_MS,
+      "Cloudinary upload timed out."
+    );
+    activeStage = 0;
+    return cloudinaryUrl;
   } catch (cloudinaryError) {
     console.warn("Cloudinary upload unavailable, trying Firebase Storage fallback.", cloudinaryError);
   }
 
+  activeStage = 2;
+
   try {
-    return await uploadToFirebaseStorage(file, folder, (progress) => {
-      onProgress?.(82 + Math.round(progress * 0.18));
-    });
+    const firebaseUrl = await withTimeout(
+      uploadToFirebaseStorage(file, folder, (progress) => {
+        if (activeStage === 2) onProgress?.(82 + Math.round(progress * 0.18));
+      }),
+      FIREBASE_STORAGE_TIMEOUT_MS,
+      "Firebase Storage upload timed out."
+    );
+    activeStage = 0;
+    return firebaseUrl;
   } catch (firebaseError) {
     console.warn("Firebase Storage fallback unavailable, using compressed inline image.", firebaseError);
   }
 
+  activeStage = 3;
+
   try {
     onProgress?.(95);
     const dataUrl = await fileToCompressedDataUrl(file);
+    activeStage = 0;
     onProgress?.(100);
     return dataUrl;
   } catch (fallbackError) {
+    activeStage = 0;
     const message = fallbackError instanceof Error ? fallbackError.message : "Image upload failed.";
     throw new Error(message);
   }
@@ -74,11 +101,16 @@ export async function uploadToCloudinary(
 
     onProgress?.(10);
 
-    const signatureResponse = await fetch("/api/cloudinary-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: uploadFolder }),
-    });
+    const signatureResponse = await fetchWithTimeout(
+      "/api/cloudinary-auth",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: uploadFolder }),
+      },
+      SIGNATURE_TIMEOUT_MS,
+      "Cloudinary signature request timed out."
+    );
 
     const auth = (await signatureResponse.json().catch(() => ({}))) as CloudinaryAuthResponse;
     if (!signatureResponse.ok) {
@@ -103,10 +135,15 @@ export async function uploadToCloudinary(
 
     onProgress?.(35);
 
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetchWithTimeout(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+      CLOUDINARY_UPLOAD_TIMEOUT_MS,
+      "Cloudinary image upload timed out."
+    );
 
     onProgress?.(70);
 
@@ -130,6 +167,36 @@ export async function uploadToCloudinary(
 
 function normalizeCloudinaryFolder(folder: string) {
   return folder.trim().replace(/^\/+/, "").replace(/\/+$/, "");
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+  message: string
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error(message);
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function getUploadErrorMessage(response: Response) {
