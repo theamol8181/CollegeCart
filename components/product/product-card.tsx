@@ -84,6 +84,9 @@ export function ProductCard({ product }: { product: Product }) {
     try {
       const orderId = await createBuyNowOrder(product, user);
       openBuyNowChat(product, orderId);
+      window.setTimeout(() => {
+        window.location.href = "/orders";
+      }, 600);
     } catch (error) {
       console.error("Could not create order:", error);
       alert(error instanceof Error ? error.message : "Could not create order. Please try again.");

@@ -53,7 +53,7 @@ export function BuyButton({ product, currentUser, seller }: BuyButtonProps) {
 
       window.open(whatsappLink, "_blank");
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         window.location.href = "/orders";
       }, 1000);
     } catch (err) {

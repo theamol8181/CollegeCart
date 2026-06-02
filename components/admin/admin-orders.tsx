@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, Clock3, Truck, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, Truck, AlertCircle } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { listenToAllOrders, updateOrderStatus } from "@/lib/orders";
 import type { Order, OrderStatus } from "@/lib/orders";
@@ -195,19 +195,34 @@ export function AdminOrders() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        handleStatusChange(order.id, e.target.value as OrderStatus)
-                      }
-                      disabled={updating[order.id]}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 disabled:opacity-50"
-                    >
-                      <option value="processing">Processing</option>
-                      <option value="on_way">On the way</option>
-                      <option value="delivered">Delivered</option>
-                    </select>
+                  <div className="grid gap-2 sm:grid-cols-3 md:min-w-[360px]">
+                    {(["processing", "on_way", "delivered"] as OrderStatus[]).map((status) => {
+                      const buttonConfig = statusConfig[status];
+                      const ButtonIcon = buttonConfig.icon;
+                      const selected = order.status === status;
+                      const label = status === "delivered" ? "Deliver" : buttonConfig.label;
+
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => handleStatusChange(order.id, status)}
+                          disabled={updating[order.id] || selected}
+                          className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed ${
+                            selected
+                              ? `${buttonConfig.color} ring-2 ring-current/20`
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/20"
+                          } ${updating[order.id] ? "opacity-60" : ""}`}
+                        >
+                          {updating[order.id] && !selected ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <ButtonIcon className="size-4" />
+                          )}
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );

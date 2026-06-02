@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Clock, Truck, MessageCircle } from "lucide-react";
 import { listenToBuyerOrders } from "@/lib/orders";
@@ -62,10 +63,22 @@ export function UserOrdersList() {
             key={order.id}
             className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
           >
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white">{order.productName}</h3>
-                <p className="text-sm text-slate-500">Order ID: {order.id.slice(0, 8)}</p>
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                {order.productImage ? (
+                  <Image
+                    src={order.productImage}
+                    alt=""
+                    width={64}
+                    height={64}
+                    unoptimized={order.productImage.startsWith("data:")}
+                    className="size-16 rounded-xl object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  <h3 className="truncate font-bold text-slate-900 dark:text-white">{order.productName}</h3>
+                  <p className="text-sm text-slate-500">Order ID: {order.id.slice(0, 8)}</p>
+                </div>
               </div>
               <div className={`flex items-center gap-1 text-sm font-bold ${config.color}`}>
                 <Icon className="size-4" />
@@ -73,7 +86,7 @@ export function UserOrdersList() {
               </div>
             </div>
 
-            <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
+            <div className="mb-3 grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
               <div>
                 <p className="text-slate-500">Price</p>
                 <p className="font-bold text-slate-900 dark:text-white">{formatPrice(order.productPrice)}</p>
@@ -83,8 +96,8 @@ export function UserOrdersList() {
                 <p className="font-bold text-slate-900 dark:text-white">{order.sellerName}</p>
               </div>
               <div>
-                <p className="text-slate-500">Seller Phone</p>
-                <p className="font-bold text-slate-900 dark:text-white">{order.sellerPhone}</p>
+                <p className="text-slate-500">Current update</p>
+                <p className={`font-bold ${config.color}`}>{config.text}</p>
               </div>
               <div>
                 <p className="text-slate-500">Order Date</p>

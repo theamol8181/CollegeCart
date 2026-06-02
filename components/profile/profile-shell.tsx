@@ -92,7 +92,7 @@ export function ProfileShell() {
           ) : null}
         </div>
         {activeTab === "My Listings" ? <ListingTable products={myListings} /> : null}
-        {activeTab === "Saved Products" ? <ListingTable products={savedProducts} /> : null}
+        {activeTab === "Saved Products" ? <SavedProductsList products={savedProducts} /> : null}
         {activeTab === "Purchase History" ? <UserOrdersList /> : null}
         {activeTab === "Account Settings" ? (
           <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.08] md:grid-cols-2">
@@ -175,6 +175,45 @@ function ListingTable({ products }: { products: ReturnType<typeof useMarketplace
           >
             Delete
           </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SavedProductsList({ products }: { products: ReturnType<typeof useMarketplaceStore.getState>["products"] }) {
+  if (!products.length) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.08] dark:text-slate-200">
+        No saved products found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-white/[0.08]">
+      {products.map((product) => (
+        <div key={product.id} className="grid gap-4 p-4 sm:grid-cols-[80px_1fr_auto] sm:items-center">
+          <Image
+            src={product.images[0]}
+            alt=""
+            width={80}
+            height={80}
+            unoptimized={product.images[0].startsWith("data:")}
+            className="size-20 rounded-xl object-cover"
+          />
+          <div>
+            <p className="font-black text-ink dark:text-white">{product.name}</p>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-300">
+              {formatPrice(product.price)} - {product.location}
+            </p>
+          </div>
+          <a
+            href={`/product/${product.id}`}
+            className="inline-flex w-fit items-center justify-center rounded-full bg-ocean px-4 py-2 text-xs font-black text-white"
+          >
+            View product
+          </a>
         </div>
       ))}
     </div>
