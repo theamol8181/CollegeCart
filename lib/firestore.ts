@@ -290,12 +290,11 @@ export function listenToUsers(onChange: (users: UserProfile[]) => void) {
   }
 
   try {
-    const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    const usersQuery = query(collection(db, "users"));
     
     return onSnapshot(
       usersQuery,
       (snapshot) => {
-        console.log(`👥 Firebase users snapshot: ${snapshot.size} users`);
         const users = snapshot.docs.map((item) => {
           const data = item.data();
           return {
@@ -310,10 +309,10 @@ export function listenToUsers(onChange: (users: UserProfile[]) => void) {
           const statusOrder = { pending: 0, approved: 1, rejected: 2, needs_id: 3 };
           const aOrder = statusOrder[a.verificationStatus as keyof typeof statusOrder] ?? 4;
           const bOrder = statusOrder[b.verificationStatus as keyof typeof statusOrder] ?? 4;
-          return aOrder - bOrder;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
         });
         
-        console.log(`✅ Users snapshot: ${users.filter(u => u.verificationStatus === 'pending').length} pending for approval`);
         onChange(sorted);
       },
       (error) => {

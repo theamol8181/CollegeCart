@@ -60,7 +60,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }));
   },
   setUsers: (users) => {
-    console.log(`👥 setUsers called with ${users.length} users`);
     const normalized = users.map(normalizeUser);
     if (typeof window !== "undefined") {
       window.localStorage.setItem("collegecart-users", JSON.stringify(normalized));
@@ -69,16 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   hydrateAuth: () => {
     if (typeof window === "undefined") return;
-    const storedUsers = window.localStorage.getItem("collegecart-users");
     const storedUser = window.localStorage.getItem("collegecart-user");
     const user = storedUser ? normalizeUser(JSON.parse(storedUser) as UserProfile) : null;
-    const shouldHydrateUsers = !user || user.role === "admin";
-    const users = shouldHydrateUsers && storedUsers
-      ? (JSON.parse(storedUsers) as UserProfile[]).map(normalizeUser)
-      : user
-        ? [user]
-        : [];
-    set({ users: user ? upsertUser(users, user) : users, user, hydrated: true });
+    set({ users: user ? [user] : [], user, hydrated: true });
   },
   updateUser: (updates) =>
     set((state) => {

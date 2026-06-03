@@ -7,6 +7,7 @@ import { FormEvent, useState } from "react";
 import { getGoogleAuthMessage, shouldRetryGoogleWithRedirect } from "@/lib/auth-errors";
 import { auth, firebaseReady, googleProvider } from "@/lib/firebase";
 import { demoUser } from "@/lib/data";
+import { getUserProfile } from "@/lib/firestore";
 import { ADMIN_EMAIL, useAuthStore } from "@/stores/auth-store";
 
 export function LoginForm() {
@@ -18,9 +19,13 @@ export function LoginForm() {
   const setUser = useAuthStore((state) => state.setUser);
   const users = useAuthStore((state) => state.users);
 
-  function buildSessionUser(inputEmail: string, defaults: { uid?: string; fullName: string; email: string; avatarUrl?: string }) {
+  function buildSessionUser(
+    inputEmail: string,
+    defaults: { uid?: string; fullName: string; email: string; avatarUrl?: string },
+    existingOverride?: ReturnType<typeof useAuthStore.getState>["user"]
+  ) {
     const normalizedEmail = (inputEmail || defaults.email).trim().toLowerCase();
-    const existing = users.find((item) => item.email.toLowerCase() === normalizedEmail);
+    const existing = existingOverride ?? users.find((item) => item.email.toLowerCase() === normalizedEmail);
     const isAdmin = normalizedEmail === ADMIN_EMAIL;
 
     return {
@@ -50,12 +55,13 @@ export function LoginForm() {
       let sessionUser: ReturnType<typeof buildSessionUser>;
       if (auth && firebaseReady) {
         const credential = await signInWithEmailAndPassword(auth, email, password);
+        const savedProfile = await getUserProfile(credential.user.uid);
         sessionUser = buildSessionUser(credential.user.email ?? email, {
           uid: credential.user.uid,
           fullName: credential.user.displayName ?? "CollegeCart Student",
           email: credential.user.email ?? email,
           avatarUrl: credential.user.photoURL ?? undefined
-        });
+        }, savedProfile);
       } else {
         sessionUser = buildSessionUser(email, {
           fullName: "CollegeCart Student",
@@ -78,8 +84,9 @@ export function LoginForm() {
         const credential = await signInWithPopup(auth, googleProvider);
         const userEmail = credential.user.email || "student@gmail.com";
         
-        // Check if user already exists in local store
-        const existingUser = users.find((item) => item.email.toLowerCase() === userEmail.toLowerCase());
+        const existingUser =
+          await getUserProfile(credential.user.uid) ??
+          users.find((item) => item.email.toLowerCase() === userEmail.toLowerCase());
         
         if (!existingUser) {
           // New user - redirect to registration with ONLY Google credentials (no pre-fill)
@@ -98,7 +105,7 @@ export function LoginForm() {
           fullName: existingUser.fullName,
           email: userEmail,
           avatarUrl: existingUser.avatarUrl ?? undefined
-        });
+        }, existingUser);
       } else {
         setIsLoading(false);
         setMessage("Google login not configured. Please use email login.");

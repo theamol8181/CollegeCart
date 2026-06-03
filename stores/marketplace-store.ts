@@ -143,6 +143,7 @@ type MarketplaceState = {
   maxPrice: number;
   savedIds: string[];
   setProducts: (products: Product[]) => void;
+  resetProducts: () => void;
   hydrateProducts: () => void;
   addProduct: (product: Product) => void;
   approveProduct: (productId: string) => void;
@@ -171,35 +172,18 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const statusOverrides = getStatusOverrides();
       const realListings = keepRealListings(products, deletedIds, statusOverrides);
       const remoteIds = new Set(realListings.map((product) => product.id));
-      // Only keep local-* products that aren't in Firebase
       const localListings = state.products.filter(
         (product) => product.id.startsWith("local-") && !remoteIds.has(product.id) && !deletedIds.has(product.id)
       );
-      
-      // Merge: Firebase products (source of truth) + local products
       const mergedListings = [...realListings, ...localListings];
-      
-      // Save to localStorage - Firebase data takes priority
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(mergedListings));
-      
       return { products: mergedListings };
     }),
+  resetProducts: () => set({ products: [] }),
   hydrateProducts: () => {
     if (typeof window === "undefined") return;
     const savedIds = getSavedProductIds();
-    const stored = window.localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!stored) {
-      set({ savedIds });
-      return;
-    }
-    try {
-      const realListings = keepRealListings(JSON.parse(stored) as Product[]);
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(realListings));
-      set({ products: realListings, savedIds });
-    } catch {
-      window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
-      set({ savedIds });
-    }
+    window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
+    set({ savedIds });
   },
   addProduct: (product) =>
     set((state) => {
@@ -208,7 +192,6 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       safeSetItem(DELETED_PRODUCTS_STORAGE_KEY, JSON.stringify(Array.from(deletedIds)));
       clearStatusOverride(product.id);
       const updated = keepRealListings([{ ...product, status: product.status ?? "approved" }, ...state.products]);
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   approveProduct: (productId) =>
@@ -217,7 +200,6 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "approved" as const } : product
       );
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   rejectProduct: (productId) =>
@@ -226,7 +208,6 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "rejected" as const } : product
       );
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   markProductSold: (productId) =>
@@ -235,21 +216,18 @@ export const useMarketplaceStore = create<MarketplaceState>((set) => ({
       const updated = state.products.map((product) =>
         product.id === productId ? { ...product, status: "sold" as const } : product
       );
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   deleteProductLocal: (productId) =>
     set((state) => {
       rememberDeletedProduct(productId);
       const updated = state.products.filter((product) => product.id !== productId);
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   removeProduct: (productId) =>
     set((state) => {
       rememberDeletedProduct(productId);
       const updated = state.products.filter((product) => product.id !== productId);
-      safeSetItem(PRODUCTS_STORAGE_KEY, JSON.stringify(updated));
       return { products: updated };
     }),
   setQuery: (query) => set({ query }),

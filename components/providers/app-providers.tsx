@@ -21,6 +21,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const { hydrateAuth, setUser, setHydrated, setUsers, user: currentUser } = useAuthStore();
   const { theme } = useThemeStore();
   const hydrateProducts = useMarketplaceStore((state) => state.hydrateProducts);
+  const resetProducts = useMarketplaceStore((state) => state.resetProducts);
   const setProducts = useMarketplaceStore((state) => state.setProducts);
   const setSavedIds = useMarketplaceStore((state) => state.setSavedIds);
   const currentUserRole = currentUser?.role;
@@ -28,7 +29,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const hasCurrentUser = Boolean(currentUser);
   const productCollegeName = currentUserRole === "student" ? currentUser?.collegeName ?? "" : "";
   const syncAllProductColleges = !hasCurrentUser || currentUserRole === "admin" || !productCollegeName;
-  const allowsAnonymousProductSync = pathname === "/" || pathname === "/search" || pathname.startsWith("/product/");
+  const allowsAnonymousProductSync = false;
 
   useEffect(() => {
     const root = document.documentElement;
@@ -40,6 +41,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   // Listen to products from Firebase
   useEffect(() => {
     hydrateProducts();
+    resetProducts();
     if (!hasCurrentUser && !allowsAnonymousProductSync) return;
     if (currentUserRole === "student" && !productCollegeName) return;
     return listenToProducts(setProducts, {
@@ -53,6 +55,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     hasCurrentUser,
     hydrateProducts,
     productCollegeName,
+    resetProducts,
     setProducts,
     syncAllProductColleges
   ]);
